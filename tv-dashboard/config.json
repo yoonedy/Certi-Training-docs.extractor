@@ -1,0 +1,70 @@
+{
+  "port": 8080,
+
+  "excel_path": "data/Schedule_Template.xlsb",
+  "excel_sheet": "입력양식",
+
+  "notices_dir": "data/notices",
+  "menu_daily_dir": "data/menu/daily",
+  "menu_weekly_dir": "data/menu/weekly",
+
+  "rotation_seconds": [60, 40, 40],
+  "page2_url": "page2.html",
+  "refresh_minutes": 5,
+
+  "imminent_days": 14,
+  "load_high": 2,
+  "load_extreme": 3,
+
+  "weather": { "name": "서울", "lat": 37.5665, "lon": 126.9780 },
+
+  "news": {
+    "abb": "https://news.google.com/rss/search?q=ABB+%EC%97%90%EC%9D%B4%EB%B9%84%EB%B9%84&hl=ko&gl=KR&ceid=KR:ko",
+    "economy": "https://www.mk.co.kr/rss/30100041/"
+  },
+
+  "stocks": [
+    { "symbol": "ABBN.SW", "name": "ABB (SIX)" },
+    { "symbol": "^KS11", "name": "KOSPI" },
+    { "symbol": "^KQ11", "name": "KOSDAQ" },
+    { "symbol": "KRW=X", "name": "USD/KRW" }
+  ],
+
+  "sites": [
+    { "name": "인천", "lat": 37.505, "lon": 126.625, "keywords": ["Shinincheon", "신인천", "Incheon", "인천"] },
+    { "name": "수원", "lat": 37.270, "lon": 127.010, "keywords": ["Suwon", "수원"] },
+    { "name": "화성", "lat": 37.200, "lon": 126.830, "keywords": ["Hwasung", "Hwaseong", "화성"] },
+    { "name": "평택", "lat": 36.960, "lon": 126.840, "keywords": ["Pyungtaek", "PyeongTaek", "Pyeongtaek", "평택"] },
+    { "name": "내포", "lat": 36.660, "lon": 126.680, "keywords": ["Naepo", "내포"] },
+    { "name": "보령", "lat": 36.390, "lon": 126.510, "keywords": ["Boryeong", "보령"] },
+    { "name": "청송", "lat": 36.430, "lon": 129.060, "keywords": ["청송", "Cheongsong"] },
+    { "name": "광주", "lat": 35.160, "lon": 126.850, "keywords": ["Gwangju", "광주"] },
+    { "name": "여수", "lat": 34.760, "lon": 127.660, "keywords": ["Yeosu", "여수"] },
+    { "name": "울산", "lat": 35.430, "lon": 129.330, "keywords": ["S-Oil", "SK Chemical", "SK케미칼", "Ulsan", "울산", "온산"],
+      "subtitle": "S-Oil 온산 공장 · SK케미칼 울산" }
+  ],
+
+  "aliases": {
+    "Shinincheon CCPP": "신인천 CCPP",
+    "KDHC Suwon CHP DCS": "KDHC 수원 CHP DCS",
+    "Kogas_Pyungtaek_MCS": "KOGAS 평택 MCS 교체",
+    "KOGAS_PyeongTaek MCS+DPS": "KOGAS 평택 HMI 마이그레이션",
+    "청송양수 DCS 업그레이드": "청송양수 DCS 업그레이드",
+    "Naepo Existing DCS": "내포 DCS 개선",
+    "Boryeong TPP": "보령 3·4호기 PCU 업그레이드",
+    "Gwangju Jeonnam": "KDHC 광주전남 PLC 교체",
+    "Hwasung HMI": "KDHC 화성 HMI 업그레이드",
+    "UT-1 GTG": "S-Oil UT-1 GTG 증설",
+    "UT-1 & UT-3 DCS On-Board": "S-Oil UT-1·3 DCS On-Board",
+    "NG 신규 직도입": "S-Oil NG 직도입 DCS 개선",
+    "#1 RFCC": "S-Oil #1 RFCC 개선작업",
+    "PX Waste Heat": "S-Oil #1 PX 폐열회수",
+    "T&I DCS Overhaul": "S-Oil PX T&I DCS Overhaul",
+    "PX LPI": "S-Oil #1 PX LPI 공정 신설",
+    "P-40301ABC": "S-Oil PX1 RFS 개선 DCS Modi",
+    "공정자동화 시스템 관련 DCS 유지보수": "S-Oil 공정자동화 DCS 유지보수",
+    "PCS 사이버보안": "S-Oil PCS 사이버보안 점검",
+    "#1CLX": "S-Oil #1CLX DCS·ESD 점검",
+    "SK Chemical DMT&ADT": "SK케미칼 DMT·ADT DCS"
+  }
+}

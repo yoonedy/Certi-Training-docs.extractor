@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기존 화면</title>
+<!--
+  2페이지 = 기존 디자인 자리.
+  기존 HTML을 이 파일에 그대로 덮어쓰면 된다 (1920x1080 기준, 상단 바 포함 화면 전체 사용).
+  다른 주소에 있으면 config.json 의 "page2_url" 을 그 주소로 바꾸고, 빈 문자열이면 2페이지를 건너뛴다.
+-->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #e9f1f6;
+    font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; color: #5b6273; }
+  .bar { height: 64px; background: linear-gradient(90deg, #e30613 55%, #d4114a 75%, #7a5bc8); }
+  .box { position: absolute; inset: 160px 360px; border: 3px dashed #8fb4cf; border-radius: 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  .box b { font-size: 40px; color: #1d2230; }
+  .box span { font-size: 22px; }
+  code { background: #fff; padding: 2px 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <div class="bar"></div>
+  <div class="box">
+    <b>기존 디자인 페이지</b>
+    <span><code>static/page2.html</code> 에 기존 화면을 붙여 넣으세요</span>
+  </div>
+</body>
+</html>

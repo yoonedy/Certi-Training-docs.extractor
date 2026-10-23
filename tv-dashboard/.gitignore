@@ -1,0 +1,9 @@
+# 실데이터는 저장소에 올리지 않음 (SharePoint 동기화 폴더를 config.json에서 지정)
+data/*.xlsb
+data/*.xlsx
+data/*.xlsm
+data/notices/*.json
+data/menu/daily/*
+data/menu/weekly/*
+!data/**/.gitkeep
+__pycache__/

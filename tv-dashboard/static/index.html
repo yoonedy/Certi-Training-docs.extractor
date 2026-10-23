@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KR AUEN TV</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="stage">
+  <header class="topbar">
+    <div class="logo">ABB</div>
+    <h1 id="page-title">KR AUEN PROJECT OVERVIEW</h1>
+    <div class="topbar-right">
+      <svg viewBox="0 0 24 24" class="clock-ico"><circle cx="12" cy="12" r="9.5"/><path d="M12 6.5V12l3.5 2.2"/></svg>
+      <span id="last-update">LAST UPDATE · —</span>
+    </div>
+  </header>
+
+  <!-- ───────── 1. 프로젝트 지도 ───────── -->
+  <section class="page" id="page-map">
+    <div class="map-heading">
+      <h2>프로젝트 지도</h2>
+      <span id="map-sub">진행 중이거나 예정된 프로젝트 · 현장 위치 기준</span>
+    </div>
+    <ul class="legend">
+      <li><i class="c-imminent"></i>2주 내 임박</li>
+      <li><i class="c-site"></i>현장작업</li>
+      <li><i class="c-fat"></i>FAT</li>
+      <li><i class="c-abb"></i>ABB Work</li>
+      <li><i class="c-annual"></i>연간 계약</li>
+    </ul>
+    <svg id="map-svg" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+    <div id="map-cards"></div>
+    <div id="map-error" class="error-banner" hidden></div>
+  </section>
+
+  <!-- ───────── 2. 기존 디자인 (page2.html) ───────── -->
+  <section class="page" id="page-legacy">
+    <iframe id="legacy-frame" title="기존 화면" scrolling="no"></iframe>
+  </section>
+
+  <!-- ───────── 3. 사내소식 · 식단 ───────── -->
+  <section class="page" id="page-info">
+    <div class="info-col">
+      <article class="panel" id="p-notice">
+        <header><h3>사내소식</h3><span class="tag">전체공지</span></header>
+        <div class="body" id="notice-body"></div>
+      </article>
+      <article class="panel" id="p-abb">
+        <header><h3>ABB 소식</h3></header>
+        <ul class="news" id="abb-news"></ul>
+      </article>
+      <article class="panel" id="p-econ">
+        <header><h3>경제뉴스</h3></header>
+        <ul class="news" id="econ-news"></ul>
+      </article>
+      <article class="panel" id="p-stock">
+        <header><h3>주가</h3><span class="tag" id="stock-time"></span></header>
+        <div class="stocks" id="stocks"></div>
+      </article>
+    </div>
+    <div class="info-col">
+      <article class="panel" id="p-date">
+        <div class="date-big" id="date-big"></div>
+        <div class="time-big" id="time-big"></div>
+      </article>
+      <article class="panel" id="p-weather">
+        <div class="weather" id="weather"></div>
+      </article>
+      <article class="panel" id="p-menu-daily">
+        <header><h3>오늘 식단표</h3><span class="tag" id="menu-daily-date"></span></header>
+        <div class="menu-img" id="menu-daily"></div>
+      </article>
+      <article class="panel" id="p-menu-weekly">
+        <header><h3>주간 식단표</h3><span class="tag" id="menu-weekly-date"></span></header>
+        <div class="menu-img" id="menu-weekly"></div>
+      </article>
+    </div>
+  </section>
+
+  <nav class="dots" id="dots"></nav>
+</div>
+
+<script src="korea-map.js"></script>
+<script src="schedule-logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
