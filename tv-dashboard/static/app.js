@@ -147,27 +147,29 @@
   }
 
   function buildCar(parent) {
-    // 오른쪽을 바라보는 ABB 서비스카 (바퀴 바닥이 y=0)
+    // 오른쪽을 바라보는 ABB 오픈카 (바퀴 바닥이 y=0)
     const g = svg("g", { id: "car" }, parent);
     const body = svg("g", { transform: "translate(-34,-44)" }, g);
     body.innerHTML = `
-      <path d="M8,30 L10,18 Q12,12 20,12 L44,12 Q50,12 54,18 L60,26 Q68,27 68,33 L68,38 Q68,40 66,40 L4,40 Q2,40 2,38 L2,34 Q2,30 8,30Z" fill="#fff" stroke="#2a2f3b" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M22,15 L42,15 Q46,15 49,19 L53,25 L22,25Z" fill="#cfe3f3" stroke="#2a2f3b" stroke-width="1.8"/>
-      <rect x="6" y="29" width="58" height="6" fill="#e30613"/>
-      <text x="16" y="34.6" font-size="6.4" font-weight="900" font-style="italic" fill="#fff" font-family="Arial, sans-serif">ABB</text>
-      <circle cx="16" cy="40" r="6.5" fill="#2a2f3b"/><circle cx="16" cy="40" r="2.4" fill="#d6dbe4"/>
-      <circle cx="54" cy="40" r="6.5" fill="#2a2f3b"/><circle cx="54" cy="40" r="2.4" fill="#d6dbe4"/>
-      <circle cx="33" cy="6" r="6" fill="#f6d7b8" stroke="#2a2f3b" stroke-width="1.6"/>
-      <path d="M25.5,4 Q26,-4 33,-4 Q40,-4 40.5,4 Z" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.6"/>
-      <rect x="24" y="3" width="18" height="2.6" rx="1.2" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.2"/>
-      <path d="M27,12 L27,15 L39,15 L39,12" fill="#2f6fe0"/>`;
+      <rect x="19" y="13" width="5" height="12" rx="2" fill="#4a5160" stroke="#2a2f3b" stroke-width="1.6"/>
+      <path d="M26,25 L26,17 Q26,13.5 30,13.5 L34,13.5 Q37.5,13.5 37.5,17 L37.5,25Z" fill="#2f6fe0" stroke="#2a2f3b" stroke-width="1.6"/>
+      <path d="M37,18 L41,22" stroke="#2a2f3b" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="31.5" cy="8" r="5.5" fill="#f6d7b8" stroke="#2a2f3b" stroke-width="1.6"/>
+      <path d="M25,6.5 Q25.5,-1 31.5,-1 Q37.5,-1 38,6.5 Z" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.6"/>
+      <rect x="23.5" y="5.4" width="16.5" height="2.4" rx="1.2" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.2"/>
+      <path d="M44,23.5 L40.5,13 L42.5,13 L47,23.5Z" fill="#cfe3f3" stroke="#2a2f3b" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M2,38 L2,30 Q2,25.5 8,25 L60,24.5 Q68,25.5 68,31 L68,38 Q68,40 66,40 L4,40 Q2,40 2,38Z" fill="#fff" stroke="#2a2f3b" stroke-width="2.4" stroke-linejoin="round"/>
+      <g id="car-logo"><text x="35" y="37" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" letter-spacing="-.3" fill="#e30613" font-family="Arial, sans-serif">ABB</text></g>
+      <g class="wheel" transform="translate(16,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
+      <g class="wheel" transform="translate(54,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
+`;
     return g;
   }
 
   let carFlip = 1, carStart = performance.now();
   function animateCar(now) {
     if (carPath && carLen && $("page-map").classList.contains("active")) {
-      const speed = 55; // px/s
+      const speed = 70; // px/s
       const at = (((now - carStart) / 1000) * speed) % carLen;
       const p = carPath.getPointAtLength(at);
       const q = carPath.getPointAtLength((at + 30) % carLen);
@@ -177,6 +179,10 @@
       r = Math.max(-28, Math.min(28, r));
       const bounce = Math.sin(now / 90) * 0.8;
       carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${(p.y + bounce).toFixed(1)}) scale(${carFlip},1) rotate(${r.toFixed(1)}) scale(.95)`);
+      // 바퀴 굴리기 (이동 거리 / 반지름), 왼쪽으로 갈 때 로고가 뒤집히지 않게
+      const spin = ((at / 6.5) * 180) / Math.PI;
+      carEl.querySelectorAll(".wheel").forEach((w, i) => w.setAttribute("transform", `translate(${i ? 54 : 16},40) rotate(${spin.toFixed(1)})`));
+      carEl.querySelector("#car-logo").setAttribute("transform", carFlip < 0 ? "matrix(-1,0,0,1,70,0)" : "");
     }
     requestAnimationFrame(animateCar);
   }
