@@ -16,6 +16,8 @@
   "load_high": 2,
   "load_extreme": 3,
 
+  "memo": { "site": "여수", "tag": "여수 · 예정", "text": "", "file": "data/memo.txt" },
+
   "weather": { "name": "서울", "lat": 37.5665, "lon": 126.9780 },
 
   "news": {

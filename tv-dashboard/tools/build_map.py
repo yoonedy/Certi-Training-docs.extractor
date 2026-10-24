@@ -15,13 +15,14 @@ SRC = HERE / "skorea_provinces_geo_simple.json"
 OUT = HERE.parent / "static" / "korea-map.js"
 
 # 본토 투영 (equirectangular, 위도 36° 보정) — 1920x1080 무대 기준
+# 하단 메모 칸 자리를 위해 위로 올림 (북쪽 끝은 상단 바에 살짝 가려짐)
 LAT0 = 36.0
-K = 205.0                      # px / 위도 1°
+K = 190.0                      # px / 위도 1°
 KX = K * math.cos(math.radians(LAT0))
 LON_MIN, LAT_MAX = 126.05, 38.62
-X0, Y0 = 668.0, 102.0
+X0, Y0 = 668.0, 40.0
 # 제주는 좌하단 인셋 박스로 옮김
-JEJU = {"lon": 126.15, "lat": 33.57, "x": 394.0, "y": 958.0}
+JEJU = {"lon": 126.15, "lat": 33.57, "x": 476.0, "y": 950.0}
 
 
 def proj(lon, lat):

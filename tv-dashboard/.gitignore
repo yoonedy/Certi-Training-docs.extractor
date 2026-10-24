@@ -7,3 +7,4 @@ data/menu/daily/*
 data/menu/weekly/*
 !data/**/.gitkeep
 __pycache__/
+data/memo.txt

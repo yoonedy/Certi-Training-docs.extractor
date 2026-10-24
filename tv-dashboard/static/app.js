@@ -103,7 +103,7 @@
     ["대구", 35.871, 128.601], ["포항", 36.019, 129.343], ["부산", 35.18, 129.075], ["광주", 35.16, 126.853],
     ["여수", 34.76, 127.662],
   ];
-  const WAVES = [[468, 180], [1270, 180], [620, 300], [1400, 330], [580, 620], [1340, 920], [640, 880], [1300, 1035], [1620, 1030]];
+  const WAVES = [[468, 180], [1270, 180], [620, 300], [1400, 330], [580, 560], [1330, 790], [620, 850]];
 
   let carPath = null, carEl = null, carLen = 0;
 
@@ -113,9 +113,9 @@
     const base = svg("g", {}, root);
 
     for (const [x, y] of WAVES) svg("path", { class: "wave", d: `M${x},${y} q10,-9 20,0 t20,0 t20,0` }, base);
-    svg("text", { class: "sea-label", x: 566, y: 760 }, base).textContent = "서 해";
-    svg("text", { class: "sea-label", x: 1326, y: 470 }, base).textContent = "동 해";
-    svg("text", { class: "sea-label", x: 1226, y: 990 }, base).textContent = "남 해";
+    svg("text", { class: "sea-label", x: 545, y: 800 }, base).textContent = "서 해";
+    svg("text", { class: "sea-label", x: 1326, y: 420 }, base).textContent = "동 해";
+    svg("text", { class: "sea-label", x: 1250, y: 880 }, base).textContent = "남 해";
 
     for (const p of M.provinces) {
       svg("path", { class: "province", d: p.d, fill: PROVINCE_FILL[p.code] || "#eee" }, base);
@@ -127,8 +127,8 @@
     svg("text", { class: "inset-label", x: 1318, y: 263, "font-size": 14 }, base).textContent = "울릉도";
     svg("text", { class: "inset-label", x: 1384, y: 269 }, base).textContent = "독도";
     // 제주 인셋
-    svg("rect", { class: "inset-box", x: 372, y: 905, width: 182, height: 148, rx: 12 }, base);
-    svg("text", { class: "inset-label", x: 463, y: 936, "font-size": 18 }, base).textContent = "제주";
+    svg("rect", { class: "inset-box", x: 462, y: 905, width: 156, height: 141, rx: 12 }, base);
+    svg("text", { class: "inset-label", x: 540, y: 934, "font-size": 18 }, base).textContent = "제주";
     svg("path", { class: "province", d: M.jeju, fill: "#d9e9d1" }, base);
 
     for (const [name, la, lo] of PROVINCE_LABELS) {
@@ -137,9 +137,10 @@
     }
 
     // 자동차가 도는 해안 외곽 도로
-    carPath = svg("path", { d: M.carRoute, fill: "none", stroke: "rgba(120,150,180,.28)", "stroke-width": 3, "stroke-dasharray": "2 10", "stroke-linecap": "round" }, base);
+    carPath = svg("path", { d: M.carRoute, fill: "none", stroke: "none" }, base);
     carLen = carPath.getTotalLength();
 
+    svg("g", { id: "memo-line" }, root);
     svg("g", { id: "city-layer" }, root);
     svg("g", { id: "connector-layer" }, root);
     svg("g", { id: "pin-layer" }, root);
@@ -159,30 +160,31 @@
       <rect x="23.5" y="5.4" width="16.5" height="2.4" rx="1.2" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.2"/>
       <path d="M44,23.5 L40.5,13 L42.5,13 L47,23.5Z" fill="#cfe3f3" stroke="#2a2f3b" stroke-width="1.6" stroke-linejoin="round"/>
       <path d="M2,38 L2,30 Q2,25.5 8,25 L60,24.5 Q68,25.5 68,31 L68,38 Q68,40 66,40 L4,40 Q2,40 2,38Z" fill="#fff" stroke="#2a2f3b" stroke-width="2.4" stroke-linejoin="round"/>
-      <g id="car-logo"><text x="35" y="37" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" letter-spacing="-.3" fill="#e30613" font-family="Arial, sans-serif">ABB</text></g>
+      <g><text x="35" y="37" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" letter-spacing="-.3" fill="#e30613" font-family="Arial, sans-serif">ABB</text></g>
       <g class="wheel" transform="translate(16,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
       <g class="wheel" transform="translate(54,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
 `;
     return g;
   }
 
-  let carFlip = 1, carStart = performance.now();
+  // 차는 항상 오른쪽을 보고 똑바로 선 채(좌우 반전 없음, 기울기 ±10°) 해안을 돈다
+  let carStart = performance.now(), lastAt = 0, spin = 0;
   function animateCar(now) {
     if (carPath && carLen && $("page-map").classList.contains("active")) {
-      const speed = 70; // px/s
+      const speed = 45; // px/s
       const at = (((now - carStart) / 1000) * speed) % carLen;
       const p = carPath.getPointAtLength(at);
-      const q = carPath.getPointAtLength((at + 30) % carLen);
+      const q = carPath.getPointAtLength((at + 40) % carLen);
       const dx = q.x - p.x, dy = q.y - p.y;
-      if (Math.abs(dx) > 6) carFlip = dx < 0 ? -1 : 1;
-      let r = (Math.atan2(dy, Math.abs(dx)) * 180) / Math.PI;
-      r = Math.max(-28, Math.min(28, r));
-      const bounce = Math.sin(now / 90) * 0.8;
-      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${(p.y + bounce).toFixed(1)}) scale(${carFlip},1) rotate(${r.toFixed(1)}) scale(.95)`);
-      // 바퀴 굴리기 (이동 거리 / 반지름), 왼쪽으로 갈 때 로고가 뒤집히지 않게
-      const spin = ((at / 6.5) * 180) / Math.PI;
-      carEl.querySelectorAll(".wheel").forEach((w, i) => w.setAttribute("transform", `translate(${i ? 54 : 16},40) rotate(${spin.toFixed(1)})`));
-      carEl.querySelector("#car-logo").setAttribute("transform", carFlip < 0 ? "matrix(-1,0,0,1,70,0)" : "");
+      let r = Math.abs(dx) < 1 ? 0 : (Math.atan(dy / dx) * 180) / Math.PI;
+      r = Math.max(-10, Math.min(10, r));
+      const bounce = Math.sin(now / 110) * 0.7;
+      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${(p.y + bounce).toFixed(1)}) rotate(${r.toFixed(1)}) scale(.95)`);
+      // 바퀴는 진행 방향(왼쪽이면 반대로)으로 굴림
+      const step = (at - lastAt + carLen) % carLen;
+      lastAt = at;
+      spin += ((step / 6.5) * 180 / Math.PI) * (dx < 0 ? -1 : 1);
+      carEl.querySelectorAll(".wheel").forEach((w, i) => w.setAttribute("transform", `translate(${i ? 54 : 16},40) rotate(${(spin % 360).toFixed(1)})`));
     }
     requestAnimationFrame(animateCar);
   }
@@ -351,6 +353,22 @@
     $("map-sub").textContent = `진행 중이거나 예정된 프로젝트 ${model.activeRows}건 · 현장 위치 기준` + (dropped ? ` · 화면 공간 부족으로 ${dropped}건 생략` : "");
   }
 
+  // ───────────────────────── 하단 메모 (여수 쪽)
+
+  async function loadMemo() {
+    const m = await getJSON("/api/memo").catch(() => ({}));
+    $("memo-tag").textContent = m.tag || "메모";
+    $("memo-text").textContent = m.text || "새 프로젝트가 등록되면 여기에 표시돼요";
+    $("map-memo").classList.toggle("empty-memo", !m.text);
+    const layer = $("memo-line");
+    layer.innerHTML = "";
+    const city = CITIES.find((c) => c[0] === m.site);
+    if (city) {
+      const p = project(city[1], city[2]);
+      svg("path", { class: "memo-connector", d: `M${p.x},${p.y + 8} L${p.x},905` }, layer);
+    }
+  }
+
   async function loadSchedule() {
     try {
       const data = await getJSON("/api/schedule");
@@ -492,7 +510,7 @@
     setInterval(tickClock, 10000);
 
     const refresh = () => {
-      loadSchedule(); loadNotices(); loadMenu(); loadWeather(); loadStocks();
+      loadSchedule(); loadMemo(); loadNotices(); loadMenu(); loadWeather(); loadStocks();
       loadNews("abb", "abb-news", 4); loadNews("economy", "econ-news", 4);
     };
     refresh();

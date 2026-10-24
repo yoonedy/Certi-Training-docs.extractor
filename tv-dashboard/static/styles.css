@@ -67,6 +67,14 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .wave { fill: none; stroke: var(--sea-ink); stroke-width: 2.4; stroke-linecap: round; opacity: .8; }
 .inset-box { fill: rgba(255,255,255,.25); stroke: var(--sea-ink); stroke-width: 2; stroke-dasharray: 7 6; }
 .inset-label { font: 500 16px var(--font); fill: #6b7387; text-anchor: middle; }
+/* 하단 메모 박스 (stage 기준 x 640~1416, y 905~1046) */
+#map-memo { position: absolute; left: 640px; top: 841px; width: 776px; height: 141px; z-index: 4;
+  background: rgba(255,255,255,.7); border: 2px dashed #a9bccd; border-radius: 16px; padding: 16px 22px; overflow: hidden; }
+#map-memo .memo-tag { display: inline-block; background: #e4e8ef; color: var(--ink-2); font-size: 15px; font-weight: 700; padding: 4px 14px; border-radius: 14px; }
+#map-memo p { margin-top: 10px; font-size: 21px; font-weight: 600; color: var(--ink); line-height: 1.45; white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#map-memo.empty-memo p { color: var(--ink-3); }
+.memo-connector { stroke: #9aa3b2; stroke-width: 2.4; stroke-dasharray: 0.1 7; stroke-linecap: round; fill: none; }
 .connector { fill: none; stroke: var(--line); stroke-width: 2.6; stroke-dasharray: 0.1 8; stroke-linecap: round; }
 .pin-label { font: 800 23px var(--font); fill: var(--ink); paint-order: stroke; stroke: #fff; stroke-width: 5px; }
 .pin-halo { fill: var(--orange); opacity: .35; animation: halo 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
