@@ -176,37 +176,34 @@
   }
 
   // 차는 해안선을 따라 시계방향으로 돈다. 왼쪽으로 달릴 땐 좌우 반전해서 앞을 보게 하고(로고는 다시 뒤집어 바르게),
-  // 기울기는 ±90° 안에서만 줘서 운전자가 늘 위쪽에 있게 한다 — 동·서해안에선 선을 따라 내려가듯/올라가듯 기운다.
+  // 차체는 기울이지 않고 화면에서 늘 수평을 유지한다 (해안선 굴곡과 상관없이).
   // 북쪽 끝은 상단 바(높이 64)에 가려지므로 그 아래 선을 따라 달리게 함
   const CAR_MIN_Y = 112;
   function carPoint(len) {
     const pt = carPath.getPointAtLength(len);
     return { x: pt.x, y: Math.max(pt.y, CAR_MIN_Y) };
   }
-  let carStart = performance.now(), carDir = 1, carAngle = null, carFace = 1, carScaleX = 1, lastNow = 0, lastAt = 0, spin = 0;
+  let carStart = performance.now(), carDir = 1, carFace = 1, carScaleX = 1, lastNow = 0, lastAt = 0, spin = 0;
   function animateCar(now) {
     if (carPath && carLen && $("page-map").classList.contains("active")) {
       const speed = 45; // px/s
       const run = (((now - carStart) / 1000) * speed) % carLen;
       const at = carDir > 0 ? run : carLen - run;
       const p = carPoint(at);
-      // 앞뒤 80px 지점으로 진행 방향을 잡아 해안 굴곡에 흔들리지 않게 하고, 회전은 천천히 따라감
+      // 앞뒤 80px 지점으로 진행 방향을 잡아 해안 굴곡에 흔들리지 않게 함
       const ahead = carPoint((at + 80 * carDir + carLen) % carLen);
       const behind = carPoint((at - 80 * carDir + carLen) % carLen);
       const dx = ahead.x - behind.x, dy = ahead.y - behind.y, dist = Math.hypot(dx, dy) || 1;
-      // 확실히 왼쪽으로 갈 때만 왼쪽을 봄 (남북 구간은 오른쪽을 봐서 바퀴가 육지 쪽), 경계에서 깜빡이지 않게 여유를 둠
+      // 확실히 왼쪽으로 갈 때만 왼쪽을 봄 (남북 구간은 오른쪽), 경계에서 깜빡이지 않게 여유를 둠
       if (carFace > 0 && dx < -0.55 * dist) carFace = -1;
       else if (carFace < 0 && dx > -0.2 * dist) carFace = 1;
-      const target = (Math.atan2(dy, carFace * dx) * 180) / Math.PI; // 반전된 차 기준 기울기
       const dt = lastNow ? Math.min((now - lastNow) / 1000, 0.1) : 1;
       lastNow = now;
-      if (carAngle === null) carAngle = target;
-      carAngle += (Math.max(-90, Math.min(90, target)) - carAngle) * Math.min(1, dt * 3);
       // 방향 전환은 0.3초 동안 좌우로 돌아서듯이
       carScaleX += Math.max(-dt / 0.15, Math.min(dt / 0.15, carFace - carScaleX));
       const sx = Math.abs(carScaleX) < 0.05 ? 0.05 * Math.sign(carFace) : carScaleX;
       const bounce = Math.sin(now / 110) * 0.7;
-      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${sx.toFixed(3)},1) rotate(${carAngle.toFixed(1)}) translate(0,${bounce.toFixed(2)}) scale(.95)`);
+      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${sx.toFixed(3)},1) translate(0,${bounce.toFixed(2)}) scale(.95)`);
       carEl.querySelector(".car-logo").setAttribute("transform", sx < 0 ? "matrix(-1,0,0,1,70,0)" : "");
       // 차가 늘 앞으로 가므로 바퀴도 늘 앞으로 굴림
       const step = (run - lastAt + carLen) % carLen;
