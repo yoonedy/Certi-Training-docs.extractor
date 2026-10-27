@@ -38,7 +38,8 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 }
 /* ABB 로고 원본(174x66) 비율 그대로, 빨간 바 위에서 보이도록 흰 바탕 위에 */
 .logo { width: 380px; display: flex; align-items: center; }
-.logo img { display: block; height: 34px; width: auto; background: #fff; padding: 6px 12px; border-radius: 6px; box-sizing: content-box; }
+/* 빨간 바 위에서는 배경 없이 같은 로고를 흰색으로 (모양·비율은 원본 그대로) */
+.logo img { display: block; height: 40px; width: auto; filter: brightness(0) invert(1); }
 .topbar h1 { flex: 1; text-align: center; font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
 .topbar-right { width: 440px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
 .clock-ico { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
