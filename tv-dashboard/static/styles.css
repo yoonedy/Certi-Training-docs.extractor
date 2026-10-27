@@ -36,7 +36,9 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
   background: linear-gradient(90deg, #e30613 0%, #e30613 55%, #d4114a 75%, #7a5bc8 100%);
   color: #fff;
 }
-.logo { font-weight: 900; font-size: 38px; letter-spacing: -1px; font-style: italic; width: 380px; }
+/* ABB 로고 원본(174x66) 비율 그대로, 빨간 바 위에서 보이도록 흰 바탕 위에 */
+.logo { width: 380px; display: flex; align-items: center; }
+.logo img { display: block; height: 34px; width: auto; background: #fff; padding: 6px 12px; border-radius: 6px; box-sizing: content-box; }
 .topbar h1 { flex: 1; text-align: center; font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
 .topbar-right { width: 440px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
 .clock-ico { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
@@ -49,11 +51,12 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .dots i.on { width: 30px; background: var(--red); }
 
 /* ───────── 1. 지도 ───────── */
-#map-svg { position: absolute; inset: -64px 0 0 0; width: 1920px; height: 1080px; }
-.map-heading { position: absolute; left: 64px; top: 22px; display: flex; align-items: baseline; gap: 28px; z-index: 5; }
+/* 지도 SVG는 하단 메모 박스(z 4) 위에 — 남해안을 지나는 자동차가 가려지지 않게 */
+#map-svg { position: absolute; inset: -64px 0 0 0; width: 1920px; height: 1080px; z-index: 5; }
+.map-heading { position: absolute; left: 64px; top: 22px; display: flex; align-items: baseline; gap: 28px; z-index: 6; }
 .map-heading h2 { font-size: 27px; font-weight: 800; }
 .map-heading span { font-size: 19px; color: var(--ink-2); }
-.legend { position: absolute; right: 48px; top: 36px; display: flex; gap: 26px; list-style: none; font-size: 18px; font-weight: 600; z-index: 5; }
+.legend { position: absolute; right: 48px; top: 36px; display: flex; gap: 26px; list-style: none; font-size: 18px; font-weight: 600; z-index: 6; }
 .legend li { display: flex; align-items: center; gap: 7px; }
 .legend i { width: 15px; height: 15px; border-radius: 50%; }
 .c-imminent { background: var(--imminent); } .c-site { background: var(--site); } .c-fat { background: var(--fat); }
@@ -82,7 +85,7 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .pin.pulse .pin-body { animation: bob 1.6s ease-in-out infinite; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-#map-cards { position: absolute; inset: -64px 0 0 0; pointer-events: none; }
+#map-cards { position: absolute; inset: -64px 0 0 0; pointer-events: none; z-index: 6; }
 .card {
   position: absolute; background: var(--card); border: 3px solid var(--line); border-radius: 16px;
   padding: 16px 18px 14px; box-shadow: 0 6px 0 rgba(30, 35, 50, .12);

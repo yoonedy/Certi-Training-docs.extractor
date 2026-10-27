@@ -168,39 +168,39 @@
       <rect x="23.5" y="5.4" width="16.5" height="2.4" rx="1.2" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.2"/>
       <path d="M44,23.5 L40.5,13 L42.5,13 L47,23.5Z" fill="#cfe3f3" stroke="#2a2f3b" stroke-width="1.6" stroke-linejoin="round"/>
       <path d="M2,38 L2,30 Q2,25.5 8,25 L60,24.5 Q68,25.5 68,31 L68,38 Q68,40 66,40 L4,40 Q2,40 2,38Z" fill="#fff" stroke="#2a2f3b" stroke-width="2.4" stroke-linejoin="round"/>
-      <g class="car-logo"><text x="35" y="37" text-anchor="middle" font-size="11" font-weight="900" font-style="italic" letter-spacing="-.3" fill="#e30613" font-family="Arial, sans-serif">ABB</text></g>
+      <image href="abb-logo.png" x="23" y="27" width="24" height="${(24 * 66 / 174).toFixed(3)}" preserveAspectRatio="xMidYMid meet"/>
       <g class="wheel" transform="translate(16,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
       <g class="wheel" transform="translate(54,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
 `;
     return g;
   }
 
-  // 차는 시계방향으로 돌며 항상 진행 방향을 바라본다 (왼쪽으로 갈 땐 좌우 반전, 로고는 다시 뒤집어 바르게).
-  // 기울기는 ±10°까지만 줘서 뒤집혀 보이지 않게 한다.
+  // 차는 앞(운전대)이 오른쪽인 모습 그대로, 해안선을 따라 시계방향으로 돈다.
+  // 좌우 반전 없이 도로 방향대로 회전하고(바퀴는 늘 육지 쪽), 각도는 부드럽게 따라가게 한다.
   // 북쪽 끝은 상단 바(높이 64)에 가려지므로 그 아래 선을 따라 달리게 함
   const CAR_MIN_Y = 112;
   function carPoint(len) {
     const pt = carPath.getPointAtLength(len);
     return { x: pt.x, y: Math.max(pt.y, CAR_MIN_Y) };
   }
-  let carStart = performance.now(), carDir = 1, carFace = 1, lastAt = 0, spin = 0;
+  let carStart = performance.now(), carDir = 1, carAngle = null, lastNow = 0, lastAt = 0, spin = 0;
   function animateCar(now) {
     if (carPath && carLen && $("page-map").classList.contains("active")) {
       const speed = 45; // px/s
       const run = (((now - carStart) / 1000) * speed) % carLen;
       const at = carDir > 0 ? run : carLen - run;
       const p = carPoint(at);
-      const q = carPoint((at + 40 * carDir + carLen) % carLen);
-      const dx = q.x - p.x, dy = q.y - p.y;
-      // 바라보는 방향은 120px 앞을 보고 정함 — 해안 굴곡에 흔들리지 않게, 남북으로 달릴 땐 직전 방향 유지
-      const far = carPoint((at + 120 * carDir + carLen) % carLen);
-      const fx = far.x - p.x, fy = far.y - p.y;
-      if (Math.abs(fx) > 0.4 * Math.hypot(fx, fy)) carFace = fx < 0 ? -1 : 1;
-      let r = Math.abs(dx) < 1 ? 0 : (Math.atan(dy / dx) * 180) / Math.PI;
-      r = Math.max(-10, Math.min(10, r)) * carFace;
+      // 앞뒤 80px 지점으로 진행 방향을 잡아 해안 굴곡에 흔들리지 않게 하고, 회전은 천천히 따라감
+      const ahead = carPoint((at + 80 * carDir + carLen) % carLen);
+      const behind = carPoint((at - 80 * carDir + carLen) % carLen);
+      const target = (Math.atan2(ahead.y - behind.y, ahead.x - behind.x) * 180) / Math.PI;
+      const dt = lastNow ? Math.min((now - lastNow) / 1000, 0.1) : 1;
+      lastNow = now;
+      if (carAngle === null) carAngle = target;
+      const diff = ((target - carAngle + 540) % 360) - 180; // -180~180 최단 회전
+      carAngle += diff * Math.min(1, dt * 3);
       const bounce = Math.sin(now / 110) * 0.7;
-      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${(p.y + bounce).toFixed(1)}) scale(${carFace},1) rotate(${r.toFixed(1)}) scale(.95)`);
-      carEl.querySelector(".car-logo").setAttribute("transform", carFace < 0 ? "matrix(-1,0,0,1,70,0)" : "");
+      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) rotate(${carAngle.toFixed(1)}) translate(0,${bounce.toFixed(2)}) scale(.95)`);
       // 차가 늘 앞으로 가므로 바퀴도 늘 앞으로 굴림
       const step = (run - lastAt + carLen) % carLen;
       lastAt = run;
