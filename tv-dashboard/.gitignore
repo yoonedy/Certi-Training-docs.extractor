@@ -8,3 +8,5 @@ data/menu/weekly/*
 !data/**/.gitkeep
 __pycache__/
 data/memo.txt
+# 미리보기 파일에는 엑셀 실데이터가 들어가므로 저장소에 올리지 않음
+preview/

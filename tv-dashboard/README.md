@@ -17,6 +17,9 @@ pip install -r requirements.txt
 python server.py          # → http://localhost:8080
 ```
 
+서버 없이 화면만 확인하려면 `python tools/build_preview.py` → `preview/tv-preview-all.html`을 브라우저로 연다
+(TV 화면 자동 회전 + 3페이지 한눈에 보기, 지도는 지금 엑셀 데이터 · 나머지는 샘플).
+
 TV PC(Windows)에서는 `start_tv.bat` 바로가기를 시작 프로그램에 넣으면 서버 + Edge 키오스크 전체화면으로 뜬다.
 화면은 1920×1080 기준으로 그려지고 어떤 해상도든 비율 맞춰 확대/축소된다.
 
