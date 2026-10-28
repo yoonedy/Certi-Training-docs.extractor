@@ -35,6 +35,14 @@
       "fallback_rss": "https://news.google.com/rss/search?q=ABB+%EC%BD%94%EB%A6%AC%EC%95%84&hl=ko&gl=KR&ceid=KR:ko"
     },
     "economy": {
+      "type": "html",
+      "url": "https://www.mk.co.kr/news/economy",
+      "link_regex": "/news/economy/\\d+",
+      "source": "매일경제",
+      "fallback_rss": "https://www.mk.co.kr/rss/30100041/"
+    },
+    "economy_naver": {
+      "comment": "네이버 경제 헤드라인을 쓰려면 이 블록의 이름을 economy로 바꾸면 됨",
       "type": "naver",
       "url": "https://news.naver.com/section/101",
       "fallback_rss": "https://www.mk.co.kr/rss/30100041/"

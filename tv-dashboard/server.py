@@ -280,30 +280,41 @@ def fetch_rss(url, limit=6):
     return {"items": items}
 
 
-def fetch_headlines(src, limit=6):
-    """ABB 코리아 홈페이지(new.abb.com/kr)에서 뉴스 기사 링크 제목을 뽑는다.
-    링크 주소에 link_pattern(기본 '/news/detail/')이 들어간 <a>만 기사로 본다."""
+def _anchor_title(tag, inner):
+    """기사 링크(<a>) 안에서 제목만: 제목 태그(h1~h4·strong·*tit*) → 첫 글자 덩어리 → title 속성"""
+    h = re.search(r'<(h[1-4]|strong)\b[^>]*>(.*?)</\1>', inner, re.S | re.I) or \
+        re.search(r'<(\w+)\b[^>]*class="[^"]*(?:tit|ttl)[^"]*"[^>]*>(.*?)</\1>', inner, re.S | re.I)
+    if h and len(strip_html(h.group(2))) >= 8:
+        return strip_html(h.group(2))
+    for chunk in re.split(r"<[^>]+>", inner):  # 썸네일·요약·날짜가 같이 들어 있어도 첫 덩어리가 제목
+        if len(strip_html(chunk)) >= 8:
+            return strip_html(chunk)
+    alt = re.search(r'(?:title|aria-label)="([^"]{8,})"', tag)  # '자세히 보기' 같은 버튼이면 속성에서
+    return strip_html(alt.group(1)) if alt else ""
+
+
+def fetch_headlines(src, limit=8):
+    """웹페이지에서 기사 링크 제목을 위에서부터 뽑는다 (ABB 코리아 홈페이지, 매일경제 경제 등).
+    링크 주소가 link_regex(정규식)에 맞거나 link_pattern(기본 '/news/detail/')을 포함하는 <a>만 기사로 본다."""
     url = src["url"]
+    regex = re.compile(src["link_regex"]) if src.get("link_regex") else None
     pattern = src.get("link_pattern", "/news/detail/")
     page = http_get(url).decode("utf-8", "replace")
     items, seen = [], set()
     for m in re.finditer(r'<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>', page, re.S | re.I):
         href, inner = m.group(1), m.group(2)
-        if pattern not in href:
+        if not (regex.search(href) if regex else pattern in href):
             continue
-        title = strip_html(inner)
-        if len(title) < 8:  # '자세히 보기' 같은 버튼 글자는 제외
-            alt = re.search(r'(?:title|aria-label)="([^"]{8,})"', m.group(0))
-            title = strip_html(alt.group(1)) if alt else ""
         link = urllib.parse.urljoin(url, href)
-        if not title or link in seen:
+        title = _anchor_title(m.group(0)[:m.group(0).find(">") + 1], inner)
+        if not title or link in seen:  # 사진만 있는 링크는 건너뛰고 같은 기사의 제목 링크를 씀
             continue
         seen.add(link)
-        items.append({"title": title, "source": "ABB 코리아", "date": "", "link": link})
+        items.append({"title": title, "source": src.get("source", "ABB 코리아"), "date": "", "link": link})
         if len(items) >= limit:
             break
     if not items:
-        raise ValueError("기사 링크를 찾지 못함 (link_pattern 확인)")
+        raise ValueError("기사 링크를 찾지 못함 (link_regex / link_pattern 확인)")
     return {"items": items}
 
 
