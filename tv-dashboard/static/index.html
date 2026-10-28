@@ -49,7 +49,7 @@
     <div id="board-error" class="error-banner" hidden></div>
   </section>
 
-  <!-- ───────── 3. 사내소식 · 식단 ───────── -->
+  <!-- ───────── 3. 사내 공지 · ABB 소식 · 경제뉴스 / 오늘 · 식단 ───────── -->
   <section class="page" id="page-info">
     <div class="info-col">
       <article class="panel" id="p-notice">
@@ -60,11 +60,19 @@
         <header><h3>ABB 코리아 소식</h3><span class="src">new.abb.com/kr</span></header>
         <ul class="news" id="abb-news"></ul>
       </article>
-    </div>
-    <div class="info-col">
       <article class="panel" id="p-econ">
         <header><h3>경제 주요 뉴스</h3><span class="src" id="econ-time"></span></header>
         <ul class="news econ" id="econ-news"></ul>
+      </article>
+    </div>
+    <div class="info-col">
+      <article class="panel" id="p-today">
+        <div class="td-date">
+          <div class="td-year" id="td-year"></div>
+          <div class="td-main"><b id="td-md"></b><span id="td-wd"></span><span class="td-time" id="td-time"></span></div>
+          <div class="td-sub" id="td-sub"></div>
+        </div>
+        <div class="td-weather" id="td-weather"></div>
       </article>
       <article class="panel" id="p-menu-weekly">
         <header><h3>주간 식단</h3><span class="src" id="menu-weekly-date"></span></header>

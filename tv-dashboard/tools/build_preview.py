@@ -51,6 +51,7 @@ def build_tv(server, live=False):
                                             "date": f"Wed, 28 Oct 2026 0{i}:{10 * i}:00 +0900"} for i in range(1, 9)]},
       "/api/weather": {"name": "서울", "temp": 15, "humidity": 55, "code": 2, "text": "구름 조금", "max": 19, "min": 9,
                        "pm10": 42, "pm25": 18, "pm10_grade": "보통", "pm25_grade": "보통", "air_grade": "보통"},
+      "/api/today": __import__("calendar_kr").today_info(),
       "/api/stocks": {"items": [{"name": "ABB (SIX)", "price": 52.34, "change": 0.62, "pct": 1.2}, {"name": "KOSPI", "price": 2934.12, "change": -12.3, "pct": -0.42},
                                 {"name": "KOSDAQ", "price": 865.4, "change": 0, "pct": 0}, {"name": "USD/KRW", "price": 1382.5, "change": 3.1, "pct": 0.22}]},
     }

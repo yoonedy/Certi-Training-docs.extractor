@@ -3,6 +3,7 @@
     python server.py            → http://localhost:8080 (TV 브라우저 전체화면으로 열기)
 
 - /api/schedule : 스케줄 엑셀(.xlsb/.xlsx) → JSON. 파일이 바뀌면 자동으로 다시 읽음
+- /api/today    : 오늘 음력 날짜 · 24절기 (calendar_kr.py)
 - /api/memo     : 지도 하단 메모 (memo.file 텍스트 파일 → 없으면 config의 memo.text)
 - /api/notices  : Power Automate가 notices_dir에 저장한 전체공지 JSON 목록
 - /api/menu     : menu_weekly_dir 의 최신 주간 식단표 이미지 + 글자 인식 결과(text)
@@ -479,6 +480,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({k: cfg.get(k) for k in keys})
         if p == "/api/schedule":
             return self.send_json(get_schedule(cfg))
+        if p == "/api/today":
+            import calendar_kr
+            return self.send_json(cached("today:" + dt.date.today().isoformat(), 3600, calendar_kr.today_info))
         if p == "/api/memo":
             memo = dict(cfg.get("memo") or {})
             f = resolve(memo.pop("file", "") or "data/memo.txt")

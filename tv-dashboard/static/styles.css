@@ -199,8 +199,9 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 /* ───────── 3. 사내 공지 · ABB 소식 · 식단 ───────── */
 #page-info { display: grid; grid-template-columns: 1.12fr 1fr; gap: 24px; padding: 28px 48px 80px; background: #eef2f6; }
 .info-col { display: grid; gap: 20px; min-height: 0; }
-.info-col:first-child { grid-template-rows: 1.45fr 1fr; }
-.info-col:last-child { grid-template-rows: 1fr 1.15fr; }
+.info-col:first-child { grid-template-rows: 1.15fr 1fr 1fr; }
+.info-col:last-child { grid-template-rows: 268px 1fr; }
+#stage[data-page="page-info"] .topbar-right { visibility: hidden; } /* 3페이지는 '오늘' 칸이 대신 보여줌 */
 .panel { background: #fff; border-radius: 18px; border: 1.5px solid #dfe4ec; padding: 18px 24px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(30, 35, 50, .05); }
 .panel header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .panel h3 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
@@ -212,7 +213,7 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .notice-main { padding: 6px 0 14px; border-bottom: 1px solid #e8ebf0; animation: fadein .6s ease; }
 .notice-main .subj { font-size: 26px; font-weight: 800; line-height: 1.3; }
 .notice-main .meta { font-size: 15px; color: var(--ink-3); margin: 6px 0 8px; }
-.notice-main .text { font-size: 17px; color: var(--ink-2); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.notice-main .text { font-size: 17px; color: var(--ink-2); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .notice-list { list-style: none; margin-top: 6px; }
 .notice-list li { display: flex; gap: 14px; align-items: baseline; padding: 8px 10px; border-radius: 8px; font-size: 18px; color: var(--ink-2); }
 .notice-list li.on { background: #f3f5f9; color: var(--ink); }
@@ -221,11 +222,13 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 
 .news { list-style: none; }
-.news li { display: flex; gap: 14px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid #f0f2f5; font-size: 19px; }
+.news li { display: flex; gap: 14px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid #f0f2f5; font-size: 19px; }
 .news li:last-child { border-bottom: 0; }
 .news .t { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .news .s { color: var(--ink-3); font-size: 14px; white-space: nowrap; }
-.news.econ li { padding: 11px 0; font-size: 21px; align-items: center; }
+.news.econ li { padding: 8px 0; font-size: 19px; align-items: center; }
+.news, .notice-list { flex: 1; min-height: 0; overflow: hidden; }
+#p-notice .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .news .rank { flex: none; width: 26px; height: 26px; border-radius: 7px; background: #f1f3f7; color: var(--ink-2); font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .news.econ li:nth-child(-n+3) .rank { background: var(--red); color: #fff; }
 
@@ -241,8 +244,8 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .menu-week thead th:first-child { width: 56px; }
 .menu-week tbody th { font-size: 14px; color: var(--ink-2); }
 .menu-week tr.side td, .menu-week tr.side th { background: #fff6dc; font-size: 13px; }
-.menu-week .on { background: #fdecee; color: var(--ink); font-weight: 700; }
-.menu-week thead th.on { color: var(--red); }
+.menu-week .on { background: #e6f3fc; color: var(--ink); font-weight: 700; } /* 오늘: 눈이 편한 하늘색 */
+.menu-week thead th.on { color: #1f6fae; background: #d4eaf9; }
 .empty { color: var(--ink-3); font-size: 17px; text-align: center; padding: 14px; line-height: 1.6; }
 .empty b { display: inline-block; background: #e4e8ef; color: var(--ink-2); font-size: 13px; padding: 2px 10px; border-radius: 10px; margin-bottom: 6px; }
 
@@ -259,3 +262,27 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .bb-stock .p { font-weight: 700; }
 .bb-stock .c { font-size: 14px; font-weight: 700; }
 .bottombar .up { color: #ff6b77; } .bottombar .down { color: #6aa5ff; } .bottombar .flat { color: #8c93a3; }
+
+/* 3페이지 '오늘' 칸: 큰 날짜 + 음력·절기 | 날씨·습도·미세먼지 */
+#p-today { flex-direction: row; padding: 0; overflow: hidden; }
+.td-date { flex: 1.05; padding: 22px 28px; color: #fff; display: flex; flex-direction: column; justify-content: center;
+  background: linear-gradient(120deg, #e30613 0%, #c40d4f 65%, #7a5bc8 100%); }
+.td-year { font-size: 17px; font-weight: 600; opacity: .9; }
+.td-main { display: flex; align-items: baseline; gap: 14px; margin: 2px 0 10px; white-space: nowrap; }
+.td-main b { font-size: 60px; font-weight: 800; letter-spacing: -1px; }
+.td-main span { font-size: 26px; font-weight: 700; }
+.td-main .td-time { margin-left: auto; font-size: 30px; font-variant-numeric: tabular-nums; opacity: .95; }
+.td-sub { display: flex; flex-direction: column; gap: 4px; font-size: 16px; opacity: .92; }
+.td-sub b { font-weight: 800; }
+.td-weather { flex: 1; padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.td-now { display: flex; align-items: center; gap: 14px; }
+.td-now svg { width: 76px; height: 76px; flex: none; }
+.td-now > b { font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.td-desc { font-size: 20px; font-weight: 800; }
+.td-range { font-size: 15px; color: var(--ink-2); margin-top: 2px; }
+.td-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.td-chip { background: #f4f6fa; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.td-chip span { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.td-chip b { font-size: 18px; font-weight: 800; }
+.td-chip b.air { background: none; padding: 0; }
+.td-chip small { font-size: 12px; color: var(--ink-3); }

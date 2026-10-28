@@ -67,6 +67,7 @@
     pageIdx = (i + enabled.length) % enabled.length;
     const page = enabled[pageIdx];
     for (const p of PAGES) $(p.id).classList.toggle("active", p === page);
+    $("stage").dataset.page = page.id; // 3페이지는 상단 날짜·날씨를 큰 '오늘' 칸으로 대신 보여줌
     $("page-title").textContent = page.title;
     if (page.id === "page-board") startBoardPaging();
     $("dots").innerHTML = enabled.map((p, k) => `<i class="${k === pageIdx ? "on" : ""}"></i>`).join("");
@@ -536,7 +537,8 @@
     el.innerHTML = `<div class="notice-main"><div class="subj">${esc(n.subject)}</div>
       <div class="meta">${esc(n.from)} · ${fmtWhen(n.received)}</div>
       <div class="text">${esc(n.body)}</div></div>
-      <ul class="notice-list">${notices.slice(0, 6).map((m, k) => `<li class="${k === noticeIdx ? "on" : ""}"><span>${esc(m.subject)}</span><span class="d">${fmtWhen(m.received)}</span></li>`).join("")}</ul>`;
+      <ul class="notice-list" id="notice-list">${notices.slice(0, 6).map((m, k) => `<li class="${k === noticeIdx ? "on" : ""}"><span>${esc(m.subject)}</span><span class="d">${fmtWhen(m.received)}</span></li>`).join("")}</ul>`;
+    fitList($("notice-list"));
   }
 
   async function loadNews(feed, id, max) {
@@ -547,6 +549,7 @@
       el.innerHTML = (d.items || []).slice(0, max).map((n) => `<li><span class="t">${esc(n.title)}</span>
         <span class="s">${esc(n.source)}${newsTime(n.date) ? " · " + newsTime(n.date) : ""}</span></li>`).join("")
         || `<li>${emptyHTML("뉴스", "표시할 기사가 없어요")}</li>`;
+      fitList(el);
     } catch (e) {
       el.innerHTML = `<li>${emptyHTML("뉴스 연결 오류", e.message)}</li>`;
     }
@@ -560,9 +563,10 @@
       const d = await getJSON("/api/news?feed=economy");
       if (d.error) throw new Error(d.error);
       econ = (d.items || []).slice(0, 8);
-      el.innerHTML = econ.slice(0, 6).map((n, k) => `<li><b class="rank">${k + 1}</b><span class="t">${esc(n.title)}</span>
+      el.innerHTML = econ.slice(0, 8).map((n, k) => `<li><b class="rank">${k + 1}</b><span class="t">${esc(n.title)}</span>
         <span class="s">${esc(n.source)}${newsTime(n.date) ? " · " + newsTime(n.date) : ""}</span></li>`).join("")
         || `<li>${emptyHTML("뉴스", "표시할 기사가 없어요")}</li>`;
+      fitList(el);
       const now = new Date();
       $("econ-time").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())} 기준`;
     } catch (e) {
@@ -633,9 +637,60 @@
         ? `<span>미세먼지</span><span class="air g${g}" title="PM10 ${Math.round(w.pm10)} · PM2.5 ${Math.round(w.pm25)}">${w.air_grade}</span>`
         : "";
       el.innerHTML = `${weatherIcon(w.code)}<span class="t">${Math.round(w.temp)}°</span><span class="h">습도 ${Math.round(w.humidity)}%</span>${air}`;
+      renderTodayWeather(w);
     } catch (e) {
       el.innerHTML = '<span class="h">날씨 정보 없음</span>';
+      $("td-weather").innerHTML = emptyHTML("날씨", "날씨 정보를 불러오지 못했어요");
     }
+  }
+
+  // 3페이지 '오늘' 칸 오른쪽: 날씨 · 습도 · 미세먼지 · 초미세먼지
+  function renderTodayWeather(w) {
+    const chip = (label, grade, value) => {
+      const g = AIR_GRADES.indexOf(grade);
+      return grade ? `<div class="td-chip"><span>${label}</span><b class="air g${g}">${grade}</b><small>${Math.round(value)}㎍</small></div>` : "";
+    };
+    $("td-weather").innerHTML = `
+      <div class="td-now">${weatherIcon(w.code)}<b>${Math.round(w.temp)}°</b>
+        <div><div class="td-desc">${esc(w.text)}</div><div class="td-range">최고 ${Math.round(w.max)}° · 최저 ${Math.round(w.min)}°</div></div></div>
+      <div class="td-chips">
+        <div class="td-chip"><span>습도</span><b>${Math.round(w.humidity)}%</b></div>
+        ${chip("미세먼지", w.pm10_grade, w.pm10)}${chip("초미세먼지", w.pm25_grade, w.pm25)}
+      </div>`;
+  }
+
+  // 3페이지 '오늘' 칸 왼쪽: 큰 날짜 + 음력 · 24절기
+  let todayInfo = null;
+  async function loadToday() {
+    try {
+      todayInfo = await getJSON("/api/today");
+    } catch (e) {
+      todayInfo = null;
+    }
+    renderToday();
+  }
+
+  function renderToday() {
+    const n = new Date();
+    const lunar = todayInfo && todayInfo.lunar;
+    $("td-year").textContent = `${n.getFullYear()}년${lunar ? " · " + lunar.ganji : ""}`;
+    $("td-md").textContent = `${n.getMonth() + 1}월 ${n.getDate()}일`;
+    $("td-wd").textContent = `${WEEK[n.getDay()]}요일`;
+    $("td-time").textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+    const parts = [];
+    if (lunar) parts.push(`음력 ${lunar.leap ? "윤" : ""}${lunar.month}월 ${lunar.day}일`);
+    if (todayInfo && todayInfo.term_today) parts.push(`오늘은 <b>${esc(todayInfo.term_today)}</b>`);
+    else if (todayInfo && todayInfo.term_next) {
+      const d = new Date(todayInfo.term_next.date + "T00:00:00");
+      const left = Math.round((d - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+      parts.push(`절기 ${esc(todayInfo.term_prev.name)} · 다음 <b>${esc(todayInfo.term_next.name)}</b> ${d.getMonth() + 1}.${d.getDate()} (D-${left})`);
+    }
+    $("td-sub").innerHTML = parts.map((p) => `<span>${p}</span>`).join("");
+  }
+
+  // 목록이 칸보다 길면 넘치는 줄을 지워서 반쯤 잘린 줄이 안 보이게
+  function fitList(ul) {
+    while (ul.children.length > 1 && ul.scrollHeight > ul.clientHeight + 1) ul.lastElementChild.remove();
   }
 
   const imgSrc = (img) => (img.url.startsWith("data:") ? img.url : `${img.url}?v=${encodeURIComponent(img.updated)}`);
@@ -673,6 +728,7 @@
     const n = new Date();
     $("hdr-date").textContent = `${n.getMonth() + 1}월 ${n.getDate()}일 (${WEEK[n.getDay()]})`;
     $("hdr-time").textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+    if ($("td-md")) renderToday();
   }
 
   // ───────────────────────── 시작
@@ -689,8 +745,8 @@
     setInterval(tickClock, 10000);
 
     const refresh = () => {
-      loadSchedule(); loadMemo(); loadNotices(); loadMenu(); loadWeather(); loadStocks();
-      loadNews("abb", "abb-news", 6); loadEconomy();
+      loadSchedule(); loadMemo(); loadNotices(); loadMenu(); loadWeather(); loadStocks(); loadToday();
+      loadNews("abb", "abb-news", 8); loadEconomy();
     };
     refresh();
     setInterval(refresh, (CFG.refresh_minutes || 5) * 60000);

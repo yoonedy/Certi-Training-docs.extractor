@@ -6,8 +6,8 @@ TV 한 화면에서 3페이지가 자동으로 돌아가는 사내 대시보드.
 |---|---|---|
 | 1. 프로젝트 지도 | 현장별 핀·카드, 2주 내 임박(D-day), 현장 부하 경고, 해안선을 도는 ABB 차량 | 스케줄 엑셀 (`입력양식` 시트) |
 | 2. 프로젝트 현황판 | 프로젝트별 월간 일정(ABB work · FAT · 납품 · 현장작업), 월별 엔지니어 부하(High / Extremly High), 진행률, 종료일 — 5건씩 `board_page_seconds`(15초)마다 다음 장 | 스케줄 엑셀 (`입력양식` 시트) |
-| 3. 뉴스 & 생활 | 사내 공지(전체공지 메일 모아보기) · ABB 코리아 소식 / 경제 주요 뉴스 · 주간 식단 | 전체공지 메일(Power Automate) · new.abb.com/kr · SharePoint 식단 게시판 |
-| 상단 우측 (공통) | 날짜·시각 · 기온 · 습도 · 미세먼지 등급 | Open-Meteo 날씨·대기질 |
+| 3. 뉴스 & 생활 | 왼쪽: 사내 공지(전체공지 메일 모아보기) · ABB 코리아 소식 · 경제 주요 뉴스 / 오른쪽: 오늘(큰 날짜 · 음력 · 24절기 · 날씨 · 습도 · 미세먼지) · 주간 식단(오늘 열 하늘색) | 전체공지 메일(Power Automate) · new.abb.com/kr · SharePoint 식단 게시판 |
+| 상단 우측 (1·2페이지) | 날짜·시각 · 기온 · 습도 · 미세먼지 등급 (3페이지는 '오늘' 칸이 대신) | Open-Meteo 날씨·대기질 |
 | 하단 바 (공통) | 경제뉴스 헤드라인(8초마다 교체) · 주가 | 경제 RSS · Yahoo Finance |
 
 ## 실행
@@ -104,6 +104,12 @@ SharePoint는 로그인이 필요해서 TV 서버가 페이지를 직접 열 수
 **TV 서버 PC(Windows) 설치**: https://github.com/UB-Mannheim/tesseract/wiki 에서 Tesseract 설치 프로그램을 받아 설치할 때
 "Additional language data"에서 **Korean**을 체크 → `config.json`의 `menu_ocr.tesseract_cmd`를
 `C:/Program Files/Tesseract-OCR/tesseract.exe`로 지정. `pip install -r requirements.txt`로 Pillow도 설치.
+
+## 음력 · 24절기 (3페이지 '오늘' 칸)
+
+- 음력: `korean_lunar_calendar` (한국천문연구원 데이터 기준, 윤달 포함) — `pip install -r requirements.txt`로 설치
+- 24절기: 태양 황경이 15°씩 지나는 날을 계산 (`calendar_kr.py`, 인터넷 불필요). 2024~2026 역서 날짜와 대조해 일치 확인
+- 절기 당일엔 "오늘은 ○○", 아니면 "절기 ○○ · 다음 ○○ 월.일 (D-n)"
 
 ## 날씨 · 미세먼지 · 뉴스 · 주가
 
