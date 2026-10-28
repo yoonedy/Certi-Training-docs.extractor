@@ -400,7 +400,7 @@ class Handler(SimpleHTTPRequestHandler):
         p = url.path
         if p == "/api/config":
             keys = ("rotation_seconds", "board_page_seconds", "refresh_minutes", "imminent_days", "load_high",
-                    "load_extreme", "sites", "aliases", "weather")
+                    "load_extreme", "sites", "aliases", "weather", "menu_today_crop")
             return self.send_json({k: cfg.get(k) for k in keys})
         if p == "/api/schedule":
             return self.send_json(get_schedule(cfg))

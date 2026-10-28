@@ -622,17 +622,57 @@
     }
   }
 
+  const imgSrc = (img) => (img.url.startsWith("data:") ? img.url : `${img.url}?v=${encodeURIComponent(img.updated)}`);
+
+  // 주간 식단표에서 [행 이름 칸 + 오늘 요일 칸]만 잘라 붙인 캔버스 (월~금만)
+  function cropToday(src, crop, dayIdx) {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => {
+        const W = im.naturalWidth, H = im.naturalHeight;
+        const y0 = crop.top * H, y1 = (crop.bottom ?? 1) * H;
+        const parts = [crop.label, [crop.days[dayIdx], crop.days[dayIdx + 1]]].map(([a, b]) => [a * W, b * W]);
+        const scale = 3; // 작은 원본도 TV에서 덜 흐리게 키워서 그림
+        const c = document.createElement("canvas");
+        c.width = Math.round(parts.reduce((t, [a, b]) => t + (b - a), 0) * scale);
+        c.height = Math.round((y1 - y0) * scale);
+        const g = c.getContext("2d");
+        g.imageSmoothingQuality = "high";
+        let x = 0;
+        for (const [a, b] of parts) {
+          g.drawImage(im, a, y0, b - a, y1 - y0, x, 0, (b - a) * scale, (y1 - y0) * scale);
+          x += (b - a) * scale;
+        }
+        resolve(c);
+      };
+      im.onerror = () => reject(new Error("식단 이미지를 읽지 못함"));
+      im.src = src;
+    });
+  }
+
   async function loadMenu() {
     try {
       const d = await getJSON("/api/menu");
       const put = (id, img, dateId, label) => {
         $(id).innerHTML = img
-          ? `<img src="${img.url}?v=${encodeURIComponent(img.updated)}" alt="${label}">`
+          ? `<img src="${imgSrc(img)}" alt="${label}">`
           : emptyHTML("SharePoint", `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
-      put("menu-daily", d.daily, "menu-daily-date", "오늘 식단");
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");
+      const dayIdx = new Date().getDay() - 1; // 월=0 … 금=4
+      const crop = CFG.menu_today_crop;
+      if (!d.daily && d.weekly && crop && dayIdx >= 0 && dayIdx <= 4) {
+        const canvas = await cropToday(imgSrc(d.weekly), crop, dayIdx);
+        $("menu-daily").innerHTML = "";
+        $("menu-daily").appendChild(canvas);
+        $("menu-daily-date").textContent = "주간 식단표에서 오늘 칸";
+      } else if (!d.daily && d.weekly && crop) {
+        $("menu-daily").innerHTML = emptyHTML("주말", "주말에는 식단이 없어요");
+        $("menu-daily-date").textContent = "";
+      } else {
+        put("menu-daily", d.daily, "menu-daily-date", "오늘 식단");
+      }
     } catch (e) {
       $("menu-daily").innerHTML = emptyHTML("연결 오류", e.message);
     }
