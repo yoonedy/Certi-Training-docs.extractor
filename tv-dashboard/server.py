@@ -18,6 +18,7 @@ import datetime as dt
 import json
 import mimetypes
 import re
+import sys
 import threading
 import time
 import urllib.parse
@@ -306,11 +307,44 @@ def fetch_headlines(src, limit=6):
     return {"items": items}
 
 
+def fetch_naver_section(src, limit=8):
+    """네이버 뉴스 섹션(예: 경제 news.naver.com/section/101) 맨 위 '헤드라인' 묶음의 기사.
+    기사 제목 링크는 class에 sa_text_title, 언론사는 sa_text_press. 헤드라인 묶음(as_headline)을
+    못 찾으면 페이지의 기사 목록 앞부분을 쓴다."""
+    page = http_get(src["url"]).decode("utf-8", "replace")
+    m = re.search(r'class="[^"]*\bas_headline\b', page)
+    if m:  # 헤드라인 묶음 ~ 다음 기사 묶음 전까지
+        nxt = page.find('class="section_article', m.end())
+        page = page[m.start(): nxt if nxt > 0 else None]
+    items, seen = [], set()
+    anchors = list(re.finditer(r'<a\b([^>]*)>(.*?)</a>', page, re.S | re.I))
+    for k, a in enumerate(anchors):
+        attrs = a.group(1)
+        if "sa_text_title" not in attrs:
+            continue
+        href = re.search(r'href="([^"]+)"', attrs)
+        title = strip_html(a.group(2))
+        if not href or not title or href.group(1) in seen:
+            continue
+        seen.add(href.group(1))
+        end = anchors[k + 1].start() if k + 1 < len(anchors) else len(page)
+        press = re.search(r'class="[^"]*sa_text_press[^"]*"[^>]*>(.*?)<', page[a.end():end], re.S)
+        items.append({"title": title, "source": strip_html(press.group(1)) if press else "네이버 뉴스",
+                      "date": "", "link": href.group(1)})
+        if len(items) >= limit:
+            break
+    if not items:
+        raise ValueError("네이버 헤드라인 기사를 찾지 못함 (페이지 구조 변경?)")
+    return {"items": items}
+
+
 def fetch_news(src):
-    """src: RSS 주소 문자열, 또는 {"type": "html", "url", "link_pattern", "fallback_rss"}"""
+    """src: RSS 주소 문자열, 또는 {"type": "html" | "naver", "url", ..., "fallback_rss"}"""
     if isinstance(src, str):
         return fetch_rss(src)
     try:
+        if src.get("type") == "naver":
+            return fetch_naver_section(src)
         return fetch_headlines(src)
     except Exception:
         if src.get("fallback_rss"):
@@ -455,8 +489,34 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
 
+def check_news(cfg):
+    """python server.py --check-news : 뉴스 출처마다 실제로 읽히는지 확인 (대비용 RSS로 넘어갔는지도 표시)"""
+    for name, src in cfg.get("news", {}).items():
+        print(f"== {name}")
+        try:
+            if isinstance(src, dict):
+                fn = fetch_naver_section if src.get("type") == "naver" else fetch_headlines
+                items = fn(src)["items"]
+                print("  원래 출처 OK:", src["url"])
+            else:
+                items = fetch_rss(src)["items"]
+        except Exception as e:
+            print("  원래 출처 실패:", e)
+            items = []
+            if isinstance(src, dict) and src.get("fallback_rss"):
+                try:
+                    items = fetch_rss(src["fallback_rss"])["items"]
+                    print("  → 대비용 RSS 사용:", src["fallback_rss"])
+                except Exception as e2:
+                    print("  → 대비용 RSS도 실패:", e2)
+        for n in items[:8]:
+            print(f"  - {n['title']}  ({n['source']})")
+
+
 def main():
     cfg = load_config()
+    if "--check-news" in sys.argv:
+        return check_news(cfg)
     port = int(cfg.get("port", 8080))
     print(f"TV 대시보드: http://localhost:{port}")
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()

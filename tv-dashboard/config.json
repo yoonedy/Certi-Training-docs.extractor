@@ -34,7 +34,11 @@
       "link_pattern": "/news/detail/",
       "fallback_rss": "https://news.google.com/rss/search?q=ABB+%EC%BD%94%EB%A6%AC%EC%95%84&hl=ko&gl=KR&ceid=KR:ko"
     },
-    "economy": "https://www.mk.co.kr/rss/30100041/"
+    "economy": {
+      "type": "naver",
+      "url": "https://news.naver.com/section/101",
+      "fallback_rss": "https://www.mk.co.kr/rss/30100041/"
+    }
   },
 
   "stocks": [

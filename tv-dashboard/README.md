@@ -112,7 +112,10 @@ TV 서버 PC에서 인터넷이 되어야 한다. 서버가 대신 받아서 캐
   (PM10 좋음 ≤30 · 보통 ≤80 · 나쁨 ≤150, PM2.5 좋음 ≤15 · 보통 ≤35 · 나쁨 ≤75) 중 나쁜 쪽을 표시
 - ABB 코리아 소식: `news.abb` — new.abb.com/kr 페이지에서 주소에 `link_pattern`(`/news/detail/`)이 들어간 기사 링크 제목을 뽑는다.
   홈페이지 구조가 바뀌어 못 찾으면 `fallback_rss`(Google 뉴스 "ABB 코리아")로 대신 보여준다
-- 경제뉴스: `news.economy` RSS (기본: 매일경제 경제) — 3페이지 '경제 주요 뉴스'에 6건, 하단 바에 8초마다 한 줄씩
+- 경제뉴스: **네이버 뉴스 경제 섹션(news.naver.com/section/101) 맨 위 '헤드라인'** 기사 — 3페이지 '경제 주요 뉴스'에 6건, 하단 바에 8초마다 한 줄씩.
+  네이버는 공식 RSS가 없어 페이지에서 제목(`sa_text_title`)·언론사(`sa_text_press`)를 뽑는다. 네이버 화면 구조가 바뀌어 못 읽으면
+  `fallback_rss`(매일경제 경제 RSS)로 자동 전환. 15분에 한 번만 가져온다
+- 뉴스 출처 점검: `python server.py --check-news` → 출처마다 실제로 읽히는지, 대비용 RSS로 넘어갔는지 출력
 - 주가: Yahoo Finance — `stocks`에 종목 코드 (`ABBN.SW`, `^KS11`, `^KQ11`, `KRW=X` …)
 
 ## 파일 구성
