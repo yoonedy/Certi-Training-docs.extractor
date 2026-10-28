@@ -265,14 +265,15 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 
 /* 3페이지 '오늘' 칸: 큰 날짜 + 음력·절기 | 날씨·습도·미세먼지 */
 #p-today { flex-direction: row; padding: 0; overflow: hidden; }
-.td-date { flex: 1.05; padding: 22px 28px; color: #fff; display: flex; flex-direction: column; justify-content: center;
-  background: linear-gradient(120deg, #e30613 0%, #c40d4f 65%, #7a5bc8 100%); }
-.td-year { font-size: 17px; font-weight: 600; opacity: .9; }
+.td-date { flex: 1.05; padding: 22px 28px; color: var(--ink); background: #fff; border-right: 1px solid #e8ebf0;
+  display: flex; flex-direction: column; justify-content: center; }
+.td-year { font-size: 17px; font-weight: 600; color: var(--ink-2); }
 .td-main { display: flex; align-items: baseline; gap: 14px; margin: 2px 0 10px; white-space: nowrap; }
 .td-main b { font-size: 60px; font-weight: 800; letter-spacing: -1px; }
 .td-main span { font-size: 26px; font-weight: 700; }
-.td-main .td-time { margin-left: auto; font-size: 30px; font-variant-numeric: tabular-nums; opacity: .95; }
-.td-sub { display: flex; flex-direction: column; gap: 4px; font-size: 16px; opacity: .92; }
+.td-main .td-time { margin-left: auto; font-size: 30px; font-variant-numeric: tabular-nums; }
+.td-sub { display: flex; flex-direction: column; gap: 4px; font-size: 16px; color: var(--ink-2); }
+.td-sub b { color: var(--ink); }
 .td-sub b { font-weight: 800; }
 .td-weather { flex: 1; padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
 .td-now { display: flex; align-items: center; gap: 14px; }
