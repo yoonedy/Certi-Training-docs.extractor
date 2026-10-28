@@ -5,7 +5,7 @@
 - /api/schedule : 스케줄 엑셀(.xlsb/.xlsx) → JSON. 파일이 바뀌면 자동으로 다시 읽음
 - /api/memo     : 지도 하단 메모 (memo.file 텍스트 파일 → 없으면 config의 memo.text)
 - /api/notices  : Power Automate가 notices_dir에 저장한 전체공지 JSON 목록
-- /api/menu     : menu_daily_dir / menu_weekly_dir 의 최신 식단표 이미지 + 주간 식단표 글자 인식 결과(text)
+- /api/menu     : menu_weekly_dir 의 최신 주간 식단표 이미지 + 글자 인식 결과(text)
 - /api/news     : ABB 소식 / 경제뉴스 RSS (15분 캐시)
 - /api/weather  : Open-Meteo 현재 기온 (10분 캐시)
 - /api/stocks   : Yahoo Finance 시세 (5분 캐시)
@@ -186,15 +186,10 @@ def get_notices(cfg, limit=8):
     return {"items": items[:limit]}
 
 
-def latest_image(folder, prefer_tokens=()):
+def latest_image(folder):
     if not folder.exists():
         return None
     files = [f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT]
-    for token in prefer_tokens:  # 파일명에 오늘 날짜가 있으면 그 파일 우선
-        hit = [f for f in files if token in f.name]
-        if hit:
-            files = hit
-            break
     if not files:
         return None
     f = max(files, key=lambda p: p.stat().st_mtime)
@@ -202,15 +197,10 @@ def latest_image(folder, prefer_tokens=()):
 
 
 def get_menu(cfg):
-    today = dt.date.today()
-    tokens = (today.strftime("%Y%m%d"), today.strftime("%Y-%m-%d"), today.strftime("%Y.%m.%d"), today.strftime("%y%m%d"))
-    daily = latest_image(resolve(cfg["menu_daily_dir"]), tokens)
     weekly = latest_image(resolve(cfg["menu_weekly_dir"]))
-    if daily:
-        daily["url"] = "/files/menu-daily/" + urllib.parse.quote(daily["rel"])
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
-    out = {"daily": daily, "weekly": weekly}
+    out = {"weekly": weekly}
     if weekly and cfg.get("menu_ocr", {}).get("enabled", True):
         out["text"] = menu_text(cfg, resolve(cfg["menu_weekly_dir"]) / weekly["rel"])
     return out
@@ -431,7 +421,7 @@ class Handler(SimpleHTTPRequestHandler):
         p = url.path
         if p == "/api/config":
             keys = ("rotation_seconds", "board_page_seconds", "refresh_minutes", "imminent_days", "load_high",
-                    "load_extreme", "sites", "aliases", "weather", "menu_today_crop")
+                    "load_extreme", "sites", "aliases", "weather")
             return self.send_json({k: cfg.get(k) for k in keys})
         if p == "/api/schedule":
             return self.send_json(get_schedule(cfg))
@@ -455,8 +445,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(cached("weather", 600, lambda: fetch_weather(cfg["weather"])))
         if p == "/api/stocks":
             return self.send_json(cached("stocks", 300, lambda: fetch_stocks(cfg.get("stocks", []))))
-        if p.startswith("/files/menu-daily/") or p.startswith("/files/menu-weekly/"):
-            folder = resolve(cfg["menu_daily_dir"] if "daily" in p else cfg["menu_weekly_dir"])
+        if p.startswith("/files/menu-weekly/"):
+            folder = resolve(cfg["menu_weekly_dir"])
             rel = urllib.parse.unquote(p.split("/", 3)[3])
             target = (folder / rel).resolve()
             if folder.resolve() not in target.parents:  # 경로 이탈 방지

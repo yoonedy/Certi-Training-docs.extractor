@@ -551,17 +551,31 @@
     }
   }
 
-  // 하단 바 경제뉴스: 흐르지 않고 8초마다 한 줄씩 바뀜 (보기 편하게)
+  // 경제뉴스: 3페이지 '경제 주요 뉴스' 목록 + 하단 바(8초마다 한 줄씩, 흐르지 않게)
   let econ = [], econIdx = 0;
   async function loadEconomy() {
+    const el = $("econ-news");
     try {
       const d = await getJSON("/api/news?feed=economy");
       if (d.error) throw new Error(d.error);
       econ = (d.items || []).slice(0, 8);
+      el.innerHTML = econ.slice(0, 6).map((n, k) => `<li><b class="rank">${k + 1}</b><span class="t">${esc(n.title)}</span>
+        <span class="s">${esc(n.source)}${newsTime(n.date) ? " · " + newsTime(n.date) : ""}</span></li>`).join("")
+        || `<li>${emptyHTML("뉴스", "표시할 기사가 없어요")}</li>`;
+      const now = new Date();
+      $("econ-time").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())} 기준`;
     } catch (e) {
       econ = [];
+      el.innerHTML = `<li>${emptyHTML("뉴스 연결 오류", e.message)}</li>`;
     }
     renderEconomy();
+  }
+
+  function newsTime(s) {
+    const d = new Date(s);
+    if (!s || isNaN(d)) return "";
+    const today = new Date();
+    return d.toDateString() === today.toDateString() ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : `${d.getMonth() + 1}.${d.getDate()}`;
   }
 
   function renderEconomy() {
@@ -624,46 +638,9 @@
 
   const imgSrc = (img) => (img.url.startsWith("data:") ? img.url : `${img.url}?v=${encodeURIComponent(img.updated)}`);
 
-  // 주간 식단표에서 [행 이름 칸 + 오늘 요일 칸]만 잘라 붙인 캔버스 (월~금만)
-  function cropToday(src, crop, dayIdx) {
-    return new Promise((resolve, reject) => {
-      const im = new Image();
-      im.onload = () => {
-        const W = im.naturalWidth, H = im.naturalHeight;
-        const y0 = crop.top * H, y1 = (crop.bottom ?? 1) * H;
-        const parts = [crop.label, [crop.days[dayIdx], crop.days[dayIdx + 1]]].map(([a, b]) => [a * W, b * W]);
-        const scale = 3; // 작은 원본도 TV에서 덜 흐리게 키워서 그림
-        const c = document.createElement("canvas");
-        c.width = Math.round(parts.reduce((t, [a, b]) => t + (b - a), 0) * scale);
-        c.height = Math.round((y1 - y0) * scale);
-        const g = c.getContext("2d");
-        g.imageSmoothingQuality = "high";
-        let x = 0;
-        for (const [a, b] of parts) {
-          g.drawImage(im, a, y0, b - a, y1 - y0, x, 0, (b - a) * scale, (y1 - y0) * scale);
-          x += (b - a) * scale;
-        }
-        resolve(c);
-      };
-      im.onerror = () => reject(new Error("식단 이미지를 읽지 못함"));
-      im.src = src;
-    });
-  }
-
-  // 글자 인식된 주간 식단 → 오늘 식단(중식 | 석식 + 사이드) · 주간 식단 표
-  const menuItems = (list) => (list || []).map((m) => `<li>${esc(m)}</li>`).join("");
-
+  // 글자 인식된 주간 식단 → 요일별 표 (오늘 열 강조)
   function renderMenuText(text) {
     const todayISO = ymd(new Date());
-    const day = text.days.find((d) => d.date === todayISO);
-    const dow = new Date().getDay();
-    $("menu-daily").innerHTML = day
-      ? `<div class="menu-today">
-          <div class="mt-col"><h4>중식</h4><ul>${menuItems(day.lunch)}</ul></div>
-          <div class="mt-col"><h4>석식</h4><ul>${menuItems(day.dinner)}</ul></div>
-          <div class="mt-side"><b>사이드</b>${day.side.map(esc).join(" · ")}</div></div>`
-      : emptyHTML(dow === 0 || dow === 6 ? "주말" : "식단 없음", dow === 0 || dow === 6 ? "주말에는 식단이 없어요" : "이번 주 식단표가 아직 올라오지 않았어요");
-    $("menu-daily-date").textContent = day ? `${day.label} · 글자 자동 인식` : "";
     $("menu-weekly").innerHTML = `<table class="menu-week">
       <thead><tr><th></th>${text.days.map((d) => `<th class="${d.date === todayISO ? "on" : ""}">${esc(d.label)}</th>`).join("")}</tr></thead>
       <tbody>${[["lunch", "중식"], ["side", "사이드"], ["dinner", "석식"]].map(([k, name]) => `<tr class="${k}"><th>${name}</th>${text.days.map((d) =>
@@ -673,7 +650,7 @@
   async function loadMenu() {
     try {
       const d = await getJSON("/api/menu");
-      if (d.weekly && d.text && d.text.days && !d.daily) {
+      if (d.weekly && d.text && d.text.days) {
         renderMenuText(d.text);
         $("menu-weekly-date").textContent = d.weekly.updated.replace("T", " ") + " 업로드 · 글자 자동 인식";
         return;
@@ -685,21 +662,8 @@
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");
-      const dayIdx = new Date().getDay() - 1; // 월=0 … 금=4
-      const crop = CFG.menu_today_crop;
-      if (!d.daily && d.weekly && crop && dayIdx >= 0 && dayIdx <= 4) {
-        const canvas = await cropToday(imgSrc(d.weekly), crop, dayIdx);
-        $("menu-daily").innerHTML = "";
-        $("menu-daily").appendChild(canvas);
-        $("menu-daily-date").textContent = "주간 식단표에서 오늘 칸";
-      } else if (!d.daily && d.weekly && crop) {
-        $("menu-daily").innerHTML = emptyHTML("주말", "주말에는 식단이 없어요");
-        $("menu-daily-date").textContent = "";
-      } else {
-        put("menu-daily", d.daily, "menu-daily-date", "오늘 식단");
-      }
     } catch (e) {
-      $("menu-daily").innerHTML = emptyHTML("연결 오류", e.message);
+      $("menu-weekly").innerHTML = emptyHTML("연결 오류", e.message);
     }
   }
 

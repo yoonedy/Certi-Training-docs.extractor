@@ -5,7 +5,6 @@
   "excel_sheet": "입력양식",
 
   "notices_dir": "data/notices",
-  "menu_daily_dir": "data/menu/daily",
   "menu_weekly_dir": "data/menu/weekly",
 
   "rotation_seconds": [60, 40, 40],
@@ -22,13 +21,6 @@
     "enabled": true,
     "tesseract_cmd": "tesseract",
     "cutoff": 0.68
-  },
-  "menu_today_crop": {
-    "comment": "오늘 식단 이미지가 따로 없으면 주간 식단표에서 오늘 요일 칸을 잘라 보여줌. 값은 이미지 너비/높이 대비 비율 (FOODONE 주간식단표 양식 기준)",
-    "label": [0.0129, 0.0573],
-    "days": [0.0573, 0.2366, 0.4251, 0.6137, 0.8022, 0.9945],
-    "top": 0.1821,
-    "bottom": 1.0
   },
 
   "memo": { "site": "여수", "tag": "여수 · 예정", "text": "", "file": "data/memo.txt" },

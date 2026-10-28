@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 def sample_menu(server, cfg):
     """식단 폴더에 이미지가 있으면 미리보기에 그대로 넣음 (없으면 빈칸)"""
     menu = server.get_menu({**cfg, "menu_ocr": {"enabled": False}})  # 서버식 백그라운드 인식은 끄고 아래에서 바로 읽음
-    for key, folder in (("daily", "menu_daily_dir"), ("weekly", "menu_weekly_dir")):
+    for key, folder in (("weekly", "menu_weekly_dir"),):
         img = menu.get(key)
         if img:
             f = server.resolve(cfg[folder]) / img["rel"]
@@ -37,7 +37,7 @@ def build_tv(server):
     root = server.ROOT
     cfg = server.load_config()
     sched = server.get_schedule(cfg)
-    keys = ("rotation_seconds","board_page_seconds","refresh_minutes","imminent_days","load_high","load_extreme","sites","aliases","weather","menu_today_crop")
+    keys = ("rotation_seconds","board_page_seconds","refresh_minutes","imminent_days","load_high","load_extreme","sites","aliases","weather")
     c = {k: cfg.get(k) for k in keys}
     api = {
       "/api/config": c, "/api/schedule": sched, "/api/memo": {k: v for k, v in (cfg.get("memo") or {}).items() if k != "file"},
@@ -46,7 +46,8 @@ def build_tv(server):
          "body": "실제 화면에서는 Power Automate가 저장한 전체공지 메일 본문 앞부분이 여기에 표시됩니다."} for i in range(1, 6)]},
       "/api/menu": sample_menu(server, cfg),
       "/api/news?feed=abb": {"items": [{"title": f"미리보기용 샘플 ABB 코리아 소식 {i}", "source": "ABB 코리아"} for i in range(1, 7)]},
-      "/api/news?feed=economy": {"items": [{"title": f"미리보기용 샘플 경제 헤드라인 {i} — 실제로는 경제 RSS 기사 제목", "source": "샘플"} for i in range(1, 6)]},
+      "/api/news?feed=economy": {"items": [{"title": f"미리보기용 샘플 경제 헤드라인 {i} — 실제로는 경제 RSS 주요 기사 제목이 표시됩니다", "source": "샘플",
+                                            "date": f"Wed, 28 Oct 2026 0{i}:{10 * i}:00 +0900"} for i in range(1, 9)]},
       "/api/weather": {"name": "서울", "temp": 15, "humidity": 55, "code": 2, "text": "구름 조금", "max": 19, "min": 9,
                        "pm10": 42, "pm25": 18, "pm10_grade": "보통", "pm25_grade": "보통", "air_grade": "보통"},
       "/api/stocks": {"items": [{"name": "ABB (SIX)", "price": 52.34, "change": 0.62, "pct": 1.2}, {"name": "KOSPI", "price": 2934.12, "change": -12.3, "pct": -0.42},
