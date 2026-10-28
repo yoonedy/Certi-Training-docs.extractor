@@ -83,13 +83,11 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .pin-label { font: 800 23px var(--font); fill: var(--ink); paint-order: stroke; stroke: #fff; stroke-width: 5px; }
 .pin-halo { fill: var(--orange); opacity: .35; animation: halo 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes halo { 0%, 100% { transform: scale(.8); opacity: .45; } 50% { transform: scale(1.25); opacity: .15; } }
-.pin.pulse .pin-body { animation: bob 1.6s ease-in-out infinite; }
-@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 #map-cards { position: absolute; inset: -64px 0 0 0; pointer-events: none; z-index: 6; }
 .card {
-  position: absolute; background: var(--card); border: 3px solid var(--line); border-radius: 16px;
-  padding: 16px 18px 14px; box-shadow: 0 6px 0 rgba(30, 35, 50, .12);
+  position: absolute; background: var(--card); border: 1.5px solid var(--line); border-radius: 16px;
+  padding: 17px 19px 15px; box-shadow: 0 6px 18px rgba(30, 35, 50, .08);
 }
 .card.imminent { border-color: var(--imminent); }
 .card .row1 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -114,9 +112,9 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .cluster .c-head { display: flex; justify-content: space-between; align-items: center; }
 .cluster h4 { font-size: 26px; font-weight: 800; }
 .cluster .count { background: #262b36; color: #fff; font-size: 17px; font-weight: 700; padding: 5px 16px; border-radius: 16px; }
-.cluster .c-sub { font-size: 14px; color: var(--ink-2); margin: 2px 0 12px; padding-bottom: 12px; border-bottom: 2px solid #e2e5ec; }
+.cluster .c-sub { font-size: 14px; color: var(--ink-2); margin: 2px 0 12px; padding-bottom: 12px; border-bottom: 1px solid #e2e5ec; }
 .cluster ul { list-style: none; }
-.cluster li { padding: 8px 0 9px; border-bottom: 1.5px solid #e2e5ec; }
+.cluster li { padding: 8px 0 9px; border-bottom: 1px solid #e2e5ec; }
 .cluster li:last-child { border-bottom: 0; }
 .cluster .l1, .cluster .l2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cluster .nm { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

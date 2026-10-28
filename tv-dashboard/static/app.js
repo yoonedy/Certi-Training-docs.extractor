@@ -186,7 +186,7 @@
   let carStart = performance.now(), carDir = 1, carFace = 1, carScaleX = 1, lastNow = 0, lastAt = 0, spin = 0;
   function animateCar(now) {
     if (carPath && carLen && $("page-map").classList.contains("active")) {
-      const speed = 45; // px/s
+      const speed = 25; // px/s — 천천히 (한 바퀴 약 1분 45초)
       const run = (((now - carStart) / 1000) * speed) % carLen;
       const at = carDir > 0 ? run : carLen - run;
       const p = carPoint(at);
@@ -202,8 +202,7 @@
       // 방향 전환은 0.3초 동안 좌우로 돌아서듯이
       carScaleX += Math.max(-dt / 0.15, Math.min(dt / 0.15, carFace - carScaleX));
       const sx = Math.abs(carScaleX) < 0.05 ? 0.05 * Math.sign(carFace) : carScaleX;
-      const bounce = Math.sin(now / 110) * 0.7;
-      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${sx.toFixed(3)},1) translate(0,${bounce.toFixed(2)}) scale(.95)`);
+      carEl.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${sx.toFixed(3)},1) scale(.95)`);
       carEl.querySelector(".car-logo").setAttribute("transform", sx < 0 ? "matrix(-1,0,0,1,70,0)" : "");
       // 차가 늘 앞으로 가므로 바퀴도 늘 앞으로 굴림
       const step = (run - lastAt + carLen) % carLen;
@@ -367,7 +366,7 @@
         const dx = (head.x - a.x) * 0.5;
         svg("path", { class: "connector", d: `M${a.x},${a.y} C${a.x + dx},${a.y} ${head.x - dx},${head.y} ${head.x},${head.y}` }, $("connector-layer"));
       }
-      const g = svg("g", { class: "pin" + (it.s.category === "imminent" ? " pulse" : ""), transform: `translate(${it.pin.x},${it.pin.y})` }, $("pin-layer"));
+      const g = svg("g", { class: "pin", transform: `translate(${it.pin.x},${it.pin.y})` }, $("pin-layer"));
       if (it.s.highLoad) svg("circle", { class: "pin-halo", cx: 0, cy: 0, r: 30 }, g);
       g.insertAdjacentHTML("beforeend", pinPath(COLOR[it.s.category]) + '<circle cx="0" cy="-37" r="7" fill="#fff" stroke="#2a2f3b" stroke-width="2"/>');
       const labelLeft = it.pin.x > 1000;
