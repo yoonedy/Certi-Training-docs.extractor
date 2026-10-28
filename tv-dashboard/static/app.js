@@ -168,7 +168,7 @@
       <rect x="23.5" y="5.4" width="16.5" height="2.4" rx="1.2" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.2"/>
       <path d="M44,23.5 L40.5,13 L42.5,13 L47,23.5Z" fill="#cfe3f3" stroke="#2a2f3b" stroke-width="1.6" stroke-linejoin="round"/>
       <path d="M2,38 L2,30 Q2,25.5 8,25 L60,24.5 Q68,25.5 68,31 L68,38 Q68,40 66,40 L4,40 Q2,40 2,38Z" fill="#fff" stroke="#2a2f3b" stroke-width="2.4" stroke-linejoin="round"/>
-      <image class="car-logo" href="abb-logo.png" x="23" y="27" width="24" height="${(24 * 66 / 174).toFixed(3)}" preserveAspectRatio="xMidYMid meet"/>
+      <image class="car-logo" href="abb-logo.png" x="23" y="28.3" width="24" height="${(24 * 66 / 174).toFixed(3)}" preserveAspectRatio="xMidYMid meet"/>
       <g class="wheel" transform="translate(16,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
       <g class="wheel" transform="translate(54,40)"><circle r="6.5" fill="#2a2f3b"/><circle r="2.6" fill="#d6dbe4"/><path d="M0,-5.6V5.6M-5.6,0H5.6" stroke="#d6dbe4" stroke-width="1.4"/></g>
 `;
