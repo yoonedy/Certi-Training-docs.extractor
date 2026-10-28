@@ -6,7 +6,9 @@ TV 한 화면에서 3페이지가 자동으로 돌아가는 사내 대시보드.
 |---|---|---|
 | 1. 프로젝트 지도 | 현장별 핀·카드, 2주 내 임박(D-day), 현장 부하 경고, 해안선을 도는 ABB 차량 | 스케줄 엑셀 (`입력양식` 시트) |
 | 2. 기존 화면 | 정해진 기존 디자인 | `static/page2.html` (또는 `page2_url`) |
-| 3. 뉴스 & 생활 | 사내소식 · ABB 소식 · 경제뉴스 · 주가 / 날짜 · 온도 · 오늘 식단 · 주간 식단 | 전체공지 메일(Power Automate) · RSS · 시세 · SharePoint 식단표 이미지 |
+| 3. 뉴스 & 생활 | 사내 공지(전체공지 메일 모아보기) · ABB 코리아 소식 / 오늘 식단 · 주간 식단 | 전체공지 메일(Power Automate) · new.abb.com/kr · SharePoint 식단 게시판 |
+| 상단 우측 (공통) | 날짜·시각 · 기온 · 습도 · 미세먼지 등급 | Open-Meteo 날씨·대기질 |
+| 하단 바 (공통) | 경제뉴스 헤드라인(8초마다 교체) · 주가 | 경제 RSS · Yahoo Finance |
 
 ## 실행
 
@@ -44,30 +46,44 @@ SharePoint에 있는 파일이면 OneDrive로 그 라이브러리를 TV PC에 **
 
 새 현장이 생기면 `config.json`의 `sites`에 이름·위도·경도·키워드만 추가하면 된다.
 
-## 사내 전체공지 (Power Automate)
+## 사내 전체공지 모아보기 (Power Automate 연동)
 
-1. 트리거: **Office 365 Outlook – 새 메일이 도착하면 (V3)** (공유 사서함이면 "공유 사서함에 새 메일이 도착하는 경우 (V2)")
-   - 조건: 제목에 `[전체공지]` 포함, 또는 받는 사람이 전체공지 배포 목록
-2. 동작: **SharePoint – 파일 만들기**
-   - 폴더: `TV/notices`
+전체공지 메일이 올 때마다 Power Automate가 메일 내용을 SharePoint 폴더에 JSON 파일로 저장하고, TV는 그 폴더를 읽는다.
+최근 공지를 모아 목록으로 보여주고, 8초마다 다음 공지를 크게 보여준다.
+
+1. https://make.powerautomate.com → **만들기 → 자동화된 클라우드 흐름**
+2. 트리거: **Office 365 Outlook – 새 메일이 도착하면 (V3)**
+   - 공유 사서함/배포 목록으로 오면: **공유 사서함에 새 메일이 도착하는 경우 (V2)**
+   - 고급 옵션 → 제목 필터: `[전체공지]` (실제 공지 메일 제목 규칙에 맞게), 또는 보낸 사람 필터
+3. 동작: **SharePoint – 파일 만들기**
+   - 사이트 주소: TV용 SharePoint 사이트, 폴더: `TV/notices`
    - 파일 이름: `@{formatDateTime(triggerBody()?['receivedDateTime'],'yyyyMMdd-HHmmss')}.json`
-   - 파일 콘텐츠: `@{triggerBody()}` (메일 JSON 그대로 — 서버가 `subject`, `from`, `receivedDateTime`, `body`를 읽고 HTML은 지운다)
-3. TV PC에 `TV/notices` 폴더를 OneDrive 동기화 → `config.json`의 `notices_dir`에 그 경로
+   - 파일 콘텐츠: `@{triggerBody()}`
+4. TV 서버 PC에서 `TV/notices` 폴더를 OneDrive **동기화** → `config.json`의 `notices_dir`에 그 경로
 
-최신 공지 1건은 크게, 나머지 4건은 목록으로 나온다.
+서버는 `subject`, `from`, `receivedDateTime`, `body`(HTML은 글자만 남김)를 읽는다.
 
-## 식단표 (SharePoint 이미지)
+## 식단표 (SharePoint CanteenReservation)
 
-- 오늘 식단: `menu_daily_dir` 폴더. 파일명에 오늘 날짜(`20261023`)가 들어간 이미지가 있으면 그걸, 없으면 가장 최근 이미지
-- 주간 식단: `menu_weekly_dir` 폴더의 가장 최근 이미지
-- 담당자가 SharePoint 폴더에 올리거나, 식단 메일이 오면 Power Automate로 첨부파일을 그 폴더에 저장하면 된다 (위와 같은 방식, "첨부 파일 포함" 켜고 **파일 만들기**에 첨부 내용 저장)
+식단 게시판: https://abb.sharepoint.com/sites/CanteenReservation
 
-## 날씨 · 뉴스 · 주가
+SharePoint는 로그인이 필요해서 TV 서버가 페이지를 직접 열 수 없다 (다른 사이트 안에 SharePoint 페이지를 끼워 넣는 것도 막혀 있음).
+그래서 식단 **이미지 파일**을 TV 서버 PC의 폴더로 가져온다. 둘 중 편한 방법:
 
-TV PC에서 인터넷이 되어야 한다. 서버가 대신 받아서 캐시한다 (브라우저 CORS 문제 없음).
+- **A. OneDrive 동기화**: CanteenReservation 사이트에서 식단 이미지가 들어 있는 문서 라이브러리(예: 문서, 사이트 자산)를 열고 **동기화** → 동기화된 폴더 경로를 `menu_daily_dir` / `menu_weekly_dir`에 지정. 하위 폴더까지 찾는다.
+- **B. Power Automate 복사**: 트리거 **SharePoint – 파일을 만든 경우(속성만)** (CanteenReservation, 식단 이미지 폴더) → 동작 **SharePoint – 파일 복사**로 TV 사이트의 `TV/menu/daily`(또는 `weekly`)에 복사 → 그 폴더를 동기화
 
-- 날씨: Open-Meteo (키 불필요) — `weather`에 위치
-- 뉴스: RSS 주소 — `news.abb`, `news.economy` (기본: Google 뉴스 "ABB", 매일경제 경제)
+오늘 식단은 파일 이름에 오늘 날짜(`20261028`, `2026-10-28`, `2026.10.28`, `261028`)가 들어간 이미지를 먼저 고르고, 없으면 가장 최근 이미지를 쓴다. 주간 식단은 가장 최근 이미지.
+
+## 날씨 · 미세먼지 · 뉴스 · 주가
+
+TV 서버 PC에서 인터넷이 되어야 한다. 서버가 대신 받아서 캐시한다.
+
+- 날씨·미세먼지: Open-Meteo (키 불필요) — `weather`에 위치. 미세먼지 등급은 환경부 기준
+  (PM10 좋음 ≤30 · 보통 ≤80 · 나쁨 ≤150, PM2.5 좋음 ≤15 · 보통 ≤35 · 나쁨 ≤75) 중 나쁜 쪽을 표시
+- ABB 코리아 소식: `news.abb` — new.abb.com/kr 페이지에서 주소에 `link_pattern`(`/news/detail/`)이 들어간 기사 링크 제목을 뽑는다.
+  홈페이지 구조가 바뀌어 못 찾으면 `fallback_rss`(Google 뉴스 "ABB 코리아")로 대신 보여준다
+- 경제뉴스: `news.economy` RSS (기본: 매일경제 경제)
 - 주가: Yahoo Finance — `stocks`에 종목 코드 (`ABBN.SW`, `^KS11`, `^KQ11`, `KRW=X` …)
 
 ## 파일 구성

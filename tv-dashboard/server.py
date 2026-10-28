@@ -186,28 +186,30 @@ def get_notices(cfg, limit=8):
     return {"items": items[:limit]}
 
 
-def latest_image(folder, prefer_token=None):
+def latest_image(folder, prefer_tokens=()):
     if not folder.exists():
         return None
-    files = [f for f in folder.iterdir() if f.suffix.lower() in IMAGE_EXT]
-    if prefer_token:
-        hit = [f for f in files if prefer_token in f.name]
+    files = [f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT]
+    for token in prefer_tokens:  # 파일명에 오늘 날짜가 있으면 그 파일 우선
+        hit = [f for f in files if token in f.name]
         if hit:
             files = hit
+            break
     if not files:
         return None
     f = max(files, key=lambda p: p.stat().st_mtime)
-    return {"name": f.name, "updated": dt.datetime.fromtimestamp(f.stat().st_mtime).isoformat(timespec="minutes")}
+    return {"name": f.name, "rel": f.relative_to(folder).as_posix(), "updated": dt.datetime.fromtimestamp(f.stat().st_mtime).isoformat(timespec="minutes")}
 
 
 def get_menu(cfg):
     today = dt.date.today()
-    daily = latest_image(resolve(cfg["menu_daily_dir"]), today.strftime("%Y%m%d"))
+    tokens = (today.strftime("%Y%m%d"), today.strftime("%Y-%m-%d"), today.strftime("%Y.%m.%d"), today.strftime("%y%m%d"))
+    daily = latest_image(resolve(cfg["menu_daily_dir"]), tokens)
     weekly = latest_image(resolve(cfg["menu_weekly_dir"]))
     if daily:
-        daily["url"] = "/files/menu-daily/" + urllib.parse.quote(daily["name"])
+        daily["url"] = "/files/menu-daily/" + urllib.parse.quote(daily["rel"])
     if weekly:
-        weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["name"])
+        weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
     return {"daily": daily, "weekly": weekly}
 
 
@@ -256,6 +258,45 @@ def fetch_rss(url, limit=6):
     return {"items": items}
 
 
+def fetch_headlines(src, limit=6):
+    """ABB 코리아 홈페이지(new.abb.com/kr)에서 뉴스 기사 링크 제목을 뽑는다.
+    링크 주소에 link_pattern(기본 '/news/detail/')이 들어간 <a>만 기사로 본다."""
+    url = src["url"]
+    pattern = src.get("link_pattern", "/news/detail/")
+    page = http_get(url).decode("utf-8", "replace")
+    items, seen = [], set()
+    for m in re.finditer(r'<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>', page, re.S | re.I):
+        href, inner = m.group(1), m.group(2)
+        if pattern not in href:
+            continue
+        title = strip_html(inner)
+        if len(title) < 8:  # '자세히 보기' 같은 버튼 글자는 제외
+            alt = re.search(r'(?:title|aria-label)="([^"]{8,})"', m.group(0))
+            title = strip_html(alt.group(1)) if alt else ""
+        link = urllib.parse.urljoin(url, href)
+        if not title or link in seen:
+            continue
+        seen.add(link)
+        items.append({"title": title, "source": "ABB 코리아", "date": "", "link": link})
+        if len(items) >= limit:
+            break
+    if not items:
+        raise ValueError("기사 링크를 찾지 못함 (link_pattern 확인)")
+    return {"items": items}
+
+
+def fetch_news(src):
+    """src: RSS 주소 문자열, 또는 {"type": "html", "url", "link_pattern", "fallback_rss"}"""
+    if isinstance(src, str):
+        return fetch_rss(src)
+    try:
+        return fetch_headlines(src)
+    except Exception:
+        if src.get("fallback_rss"):
+            return fetch_rss(src["fallback_rss"])
+        raise
+
+
 WEATHER_CODES = {0: "맑음", 1: "대체로 맑음", 2: "구름 조금", 3: "흐림", 45: "안개", 48: "안개",
                  51: "이슬비", 53: "이슬비", 55: "이슬비", 61: "비", 63: "비", 65: "강한 비",
                  71: "눈", 73: "눈", 75: "강한 눈", 80: "소나기", 81: "소나기", 82: "강한 소나기",
@@ -270,7 +311,7 @@ def fetch_weather(w):
     })
     d = json.loads(http_get("https://api.open-meteo.com/v1/forecast?" + q))
     code = d["current"]["weather_code"]
-    return {
+    out = {
         "name": w.get("name", ""),
         "temp": d["current"]["temperature_2m"],
         "humidity": d["current"]["relative_humidity_2m"],
@@ -279,6 +320,33 @@ def fetch_weather(w):
         "max": d["daily"]["temperature_2m_max"][0],
         "min": d["daily"]["temperature_2m_min"][0],
     }
+    try:  # 미세먼지는 실패해도 날씨는 그대로 보여줌
+        out.update(fetch_air(w))
+    except Exception as e:
+        out["air_error"] = str(e)
+    return out
+
+
+# 환경부 통합대기 기준 (㎍/㎥): 좋음 / 보통 / 나쁨 / 매우나쁨
+PM_GRADES = {"pm10": (30, 80, 150), "pm25": (15, 35, 75)}
+GRADE_NAMES = ("좋음", "보통", "나쁨", "매우나쁨")
+
+
+def pm_grade(kind, value):
+    if value is None:
+        return None
+    return GRADE_NAMES[sum(value > limit for limit in PM_GRADES[kind])]
+
+
+def fetch_air(w):
+    q = urllib.parse.urlencode({"latitude": w["lat"], "longitude": w["lon"], "timezone": "Asia/Seoul",
+                                "current": "pm10,pm2_5"})
+    cur = json.loads(http_get("https://air-quality-api.open-meteo.com/v1/air-quality?" + q))["current"]
+    pm10, pm25 = cur.get("pm10"), cur.get("pm2_5")
+    g10, g25 = pm_grade("pm10", pm10), pm_grade("pm25", pm25)
+    # 둘 중 나쁜 쪽을 대표 등급으로
+    worst = max((g for g in (g10, g25) if g), key=GRADE_NAMES.index, default=None)
+    return {"pm10": pm10, "pm25": pm25, "pm10_grade": g10, "pm25_grade": g25, "air_grade": worst}
 
 
 def fetch_stocks(stocks):
@@ -351,15 +419,18 @@ class Handler(SimpleHTTPRequestHandler):
             src = cfg.get("news", {}).get(feed)
             if not src:
                 return self.send_json({"error": "unknown feed"}, 404)
-            return self.send_json(cached("news:" + feed, 900, lambda: fetch_rss(src)))
+            return self.send_json(cached("news:" + feed, 900, lambda: fetch_news(src)))
         if p == "/api/weather":
             return self.send_json(cached("weather", 600, lambda: fetch_weather(cfg["weather"])))
         if p == "/api/stocks":
             return self.send_json(cached("stocks", 300, lambda: fetch_stocks(cfg.get("stocks", []))))
         if p.startswith("/files/menu-daily/") or p.startswith("/files/menu-weekly/"):
             folder = resolve(cfg["menu_daily_dir"] if "daily" in p else cfg["menu_weekly_dir"])
-            name = Path(urllib.parse.unquote(p.rsplit("/", 1)[1])).name  # 경로 이탈 방지
-            return self.send_file(folder / name)
+            rel = urllib.parse.unquote(p.split("/", 3)[3])
+            target = (folder / rel).resolve()
+            if folder.resolve() not in target.parents:  # 경로 이탈 방지
+                return self.send_error(404)
+            return self.send_file(target)
         return super().do_GET()
 
 

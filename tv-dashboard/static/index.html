@@ -13,8 +13,8 @@
     <div class="logo"><img src="abb-logo.png" alt="ABB"></div>
     <h1 id="page-title">KR AUEN PROJECT OVERVIEW</h1>
     <div class="topbar-right">
-      <svg viewBox="0 0 24 24" class="clock-ico"><circle cx="12" cy="12" r="9.5"/><path d="M12 6.5V12l3.5 2.2"/></svg>
-      <span id="last-update">LAST UPDATE · —</span>
+      <div class="hdr-date"><span id="hdr-date"></span><b id="hdr-time"></b></div>
+      <div class="hdr-weather" id="hdr-weather"></div>
     </div>
   </header>
 
@@ -23,6 +23,7 @@
     <div class="map-heading">
       <h2>프로젝트 지도</h2>
       <span id="map-sub">진행 중이거나 예정된 프로젝트 · 현장 위치 기준</span>
+      <span class="last-update" id="last-update"></span>
     </div>
     <ul class="legend">
       <li><i class="c-imminent"></i>2주 내 임박</li>
@@ -46,42 +47,33 @@
   <section class="page" id="page-info">
     <div class="info-col">
       <article class="panel" id="p-notice">
-        <header><h3>사내소식</h3><span class="tag">전체공지</span></header>
+        <header><h3>사내 공지</h3><span class="tag">전체공지 메일</span><span class="count" id="notice-count"></span></header>
         <div class="body" id="notice-body"></div>
       </article>
       <article class="panel" id="p-abb">
-        <header><h3>ABB 소식</h3></header>
+        <header><h3>ABB 코리아 소식</h3><span class="src">new.abb.com/kr</span></header>
         <ul class="news" id="abb-news"></ul>
-      </article>
-      <article class="panel" id="p-econ">
-        <header><h3>경제뉴스</h3></header>
-        <ul class="news" id="econ-news"></ul>
-      </article>
-      <article class="panel" id="p-stock">
-        <header><h3>주가</h3><span class="tag" id="stock-time"></span></header>
-        <div class="stocks" id="stocks"></div>
       </article>
     </div>
     <div class="info-col">
-      <article class="panel" id="p-date">
-        <div class="date-big" id="date-big"></div>
-        <div class="time-big" id="time-big"></div>
-      </article>
-      <article class="panel" id="p-weather">
-        <div class="weather" id="weather"></div>
-      </article>
       <article class="panel" id="p-menu-daily">
-        <header><h3>오늘 식단표</h3><span class="tag" id="menu-daily-date"></span></header>
+        <header><h3>오늘 식단</h3><span class="src" id="menu-daily-date"></span></header>
         <div class="menu-img" id="menu-daily"></div>
       </article>
       <article class="panel" id="p-menu-weekly">
-        <header><h3>주간 식단표</h3><span class="tag" id="menu-weekly-date"></span></header>
+        <header><h3>주간 식단</h3><span class="src" id="menu-weekly-date"></span></header>
         <div class="menu-img" id="menu-weekly"></div>
       </article>
     </div>
   </section>
 
-  <nav class="dots" id="dots"></nav>
+  <!-- ───────── 하단 바: 경제뉴스 · 주가 (모든 페이지) ───────── -->
+  <footer class="bottombar">
+    <span class="bb-tag">경제</span>
+    <div class="bb-news" id="econ-ticker"></div>
+    <div class="bb-stocks" id="stocks"></div>
+    <nav class="dots" id="dots"></nav>
+  </footer>
 </div>
 
 <script src="korea-map.js"></script>

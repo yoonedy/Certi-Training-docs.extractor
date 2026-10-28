@@ -22,7 +22,7 @@ KX = K * math.cos(math.radians(LAT0))
 LON_MIN, LAT_MAX = 126.05, 38.62
 X0, Y0 = 668.0, 40.0
 # 제주는 좌하단 인셋 박스로 옮김
-JEJU = {"lon": 126.15, "lat": 33.57, "x": 476.0, "y": 950.0}
+JEJU = {"lon": 126.15, "lat": 33.57, "x": 476.0, "y": 925.0}
 
 
 def proj(lon, lat):

@@ -115,7 +115,7 @@
     for (const [x, y] of WAVES) svg("path", { class: "wave", d: `M${x},${y} q10,-9 20,0 t20,0 t20,0` }, base);
     svg("text", { class: "sea-label", x: 545, y: 800 }, base).textContent = "서 해";
     svg("text", { class: "sea-label", x: 1326, y: 420 }, base).textContent = "동 해";
-    svg("text", { class: "sea-label", x: 1250, y: 880 }, base).textContent = "남 해";
+    svg("text", { class: "sea-label", x: 1240, y: 850 }, base).textContent = "남 해";
 
     for (const p of M.provinces) {
       svg("path", { class: "province", d: p.d, fill: PROVINCE_FILL[p.code] || "#eee" }, base);
@@ -127,8 +127,8 @@
     svg("text", { class: "inset-label", x: 1318, y: 263, "font-size": 14 }, base).textContent = "울릉도";
     svg("text", { class: "inset-label", x: 1384, y: 269 }, base).textContent = "독도";
     // 제주 인셋
-    svg("rect", { class: "inset-box", x: 462, y: 905, width: 156, height: 141, rx: 12 }, base);
-    svg("text", { class: "inset-label", x: 540, y: 934, "font-size": 18 }, base).textContent = "제주";
+    svg("rect", { class: "inset-box", x: 462, y: 884, width: 156, height: 128, rx: 12 }, base);
+    svg("text", { class: "inset-label", x: 540, y: 911, "font-size": 18 }, base).textContent = "제주";
     svg("path", { class: "province", d: M.jeju, fill: "#d9e9d1" }, base);
 
     for (const [name, la, lo] of PROVINCE_LABELS) {
@@ -219,8 +219,8 @@
   const COLOR = { imminent: "#e3263b", site: "#2f6fe0", fat: "#7a55f0", abb: "#4a5160", annual: "#16a06b" };
 
   const COL = {
-    left: { x: 62, w: 383, top: 166, bottom: 1046 },
-    right: { x: 1440, w: 420, top: 140, bottom: 1046 },
+    left: { x: 62, w: 383, top: 166, bottom: 1012 },
+    right: { x: 1440, w: 420, top: 140, bottom: 1012 },
   };
   const GAP = 26;
 
@@ -389,7 +389,7 @@
     const city = CITIES.find((c) => c[0] === m.site);
     if (city) {
       const p = project(city[1], city[2]);
-      svg("path", { class: "memo-connector", d: `M${p.x},${p.y + 8} L${p.x},905` }, layer);
+      svg("path", { class: "memo-connector", d: `M${p.x},${p.y + 8} L${p.x},884` }, layer);
     }
   }
 
@@ -398,7 +398,7 @@
       const data = await getJSON("/api/schedule");
       if (data.error) throw new Error(data.error);
       renderMap(data);
-      $("last-update").textContent = "LAST UPDATE · " + fmtUpdate(data.updated);
+      $("last-update").textContent = "엑셀 업데이트 " + fmtUpdate(data.updated);
       $("map-error").hidden = !data.stale;
       if (data.stale) $("map-error").textContent = "엑셀을 읽지 못해 이전 데이터를 표시 중: " + data.stale;
     } catch (e) {
@@ -419,19 +419,28 @@
     return `<div class="empty"><b>${esc(tag)}</b><br>${esc(text)}</div>`;
   }
 
+  // 사내 공지: 최근 전체공지 메일을 모아서 8초마다 하나씩 크게 보여줌
+  let notices = [], noticeIdx = 0;
   async function loadNotices() {
-    const el = $("notice-body");
     try {
       const d = await getJSON("/api/notices");
-      const [first, ...rest] = d.items || [];
-      if (!first) { el.innerHTML = emptyHTML("전체공지", "새 전체공지 메일이 오면 여기에 표시돼요"); return; }
-      el.innerHTML = `<div class="notice-main"><div class="subj">${esc(first.subject)}</div>
-        <div class="meta">${esc(first.from)} · ${fmtWhen(first.received)}</div>
-        <div class="text">${esc(first.body)}</div></div>
-        <ul class="notice-list">${rest.slice(0, 4).map((n) => `<li><span>${esc(n.subject)}</span><span class="d">${fmtWhen(n.received)}</span></li>`).join("")}</ul>`;
+      notices = d.items || [];
+      noticeIdx = Math.min(noticeIdx, Math.max(0, notices.length - 1));
+      renderNotice();
     } catch (e) {
-      el.innerHTML = emptyHTML("연결 오류", e.message);
+      $("notice-body").innerHTML = emptyHTML("연결 오류", e.message);
     }
+  }
+
+  function renderNotice() {
+    const el = $("notice-body");
+    $("notice-count").textContent = notices.length ? `최근 ${notices.length}건` : "";
+    if (!notices.length) { el.innerHTML = emptyHTML("전체공지", "새 전체공지 메일이 오면 여기에 모여서 표시돼요"); return; }
+    const n = notices[noticeIdx];
+    el.innerHTML = `<div class="notice-main"><div class="subj">${esc(n.subject)}</div>
+      <div class="meta">${esc(n.from)} · ${fmtWhen(n.received)}</div>
+      <div class="text">${esc(n.body)}</div></div>
+      <ul class="notice-list">${notices.slice(0, 6).map((m, k) => `<li class="${k === noticeIdx ? "on" : ""}"><span>${esc(m.subject)}</span><span class="d">${fmtWhen(m.received)}</span></li>`).join("")}</ul>`;
   }
 
   async function loadNews(feed, id, max) {
@@ -446,32 +455,49 @@
     }
   }
 
+  // 하단 바 경제뉴스: 흐르지 않고 8초마다 한 줄씩 바뀜 (보기 편하게)
+  let econ = [], econIdx = 0;
+  async function loadEconomy() {
+    try {
+      const d = await getJSON("/api/news?feed=economy");
+      if (d.error) throw new Error(d.error);
+      econ = (d.items || []).slice(0, 8);
+    } catch (e) {
+      econ = [];
+    }
+    renderEconomy();
+  }
+
+  function renderEconomy() {
+    const n = econ[econIdx % (econ.length || 1)];
+    $("econ-ticker").innerHTML = n
+      ? `<span>${esc(n.title)}<small>${esc(n.source)}</small></span>`
+      : '<span class="flat">경제뉴스를 불러오는 중이에요</span>';
+  }
+
   async function loadStocks() {
     const el = $("stocks");
     try {
       const d = await getJSON("/api/stocks");
       if (d.error) throw new Error(d.error);
       el.innerHTML = (d.items || []).map((s) => {
-        if (s.error || s.price == null) return `<div class="stock"><div class="n">${esc(s.name)}</div><div class="p flat">—</div></div>`;
+        if (s.error || s.price == null) return `<div class="bb-stock"><span class="n">${esc(s.name)}</span><span class="p flat">—</span></div>`;
         const cls = s.change > 0 ? "up" : s.change < 0 ? "down" : "flat";
         const arrow = s.change > 0 ? "▲" : s.change < 0 ? "▼" : "–";
-        const digits = s.price >= 1000 ? 2 : 2;
-        return `<div class="stock"><div class="n">${esc(s.name)}</div>
-          <div class="p">${s.price.toLocaleString("ko-KR", { maximumFractionDigits: digits })}</div>
-          <div class="c ${cls}">${arrow} ${Math.abs(s.change).toLocaleString("ko-KR", { maximumFractionDigits: 2 })} (${s.pct >= 0 ? "+" : ""}${s.pct.toFixed(2)}%)</div></div>`;
+        return `<div class="bb-stock"><span class="n">${esc(s.name)}</span>
+          <span class="p">${s.price.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</span>
+          <span class="c ${cls}">${arrow} ${Math.abs(s.pct).toFixed(2)}%</span></div>`;
       }).join("");
-      const n = new Date();
-      $("stock-time").textContent = `${pad(n.getHours())}:${pad(n.getMinutes())} 기준`;
     } catch (e) {
-      el.innerHTML = emptyHTML("시세 연결 오류", e.message);
+      el.innerHTML = `<div class="bb-stock"><span class="n">시세 연결 오류</span></div>`;
     }
   }
 
   function weatherIcon(code) {
     const sun = '<circle cx="40" cy="38" r="15" fill="#f7c21b"/><g stroke="#f7c21b" stroke-width="4" stroke-linecap="round"><path d="M40 12v-6M40 70v-6M14 38H8M72 38h-6M21 19l-4-4M63 61l-4-4M21 57l-4 4M63 15l-4 4"/></g>';
     const cloud = (x, c) => `<path transform="translate(${x},0)" d="M24 66h36a14 14 0 0 0 0-28 20 20 0 0 0-38-4 13 13 0 0 0 2 32z" fill="${c}" stroke="#2a2f3b" stroke-width="2.4"/>`;
-    const drops = '<g stroke="#2f6fe0" stroke-width="4" stroke-linecap="round"><path d="M34 74l-3 8M48 74l-3 8M62 74l-3 8"/></g>';
-    const flakes = '<g fill="#8fb4cf"><circle cx="34" cy="78" r="3.5"/><circle cx="48" cy="82" r="3.5"/><circle cx="62" cy="78" r="3.5"/></g>';
+    const drops = '<g stroke="#9cc6ff" stroke-width="4" stroke-linecap="round"><path d="M34 74l-3 8M48 74l-3 8M62 74l-3 8"/></g>';
+    const flakes = '<g fill="#fff"><circle cx="34" cy="78" r="3.5"/><circle cx="48" cy="82" r="3.5"/><circle cx="62" cy="78" r="3.5"/></g>';
     const bolt = '<path d="M48 66l-8 14h8l-4 10 12-16h-8l4-8z" fill="#f7c21b" stroke="#2a2f3b" stroke-width="1.5"/>';
     let body;
     if (code <= 1) body = sun;
@@ -483,16 +509,20 @@
     return `<svg viewBox="0 0 92 92">${body}</svg>`;
   }
 
+  // 상단 우측: 날씨 · 습도 · 미세먼지
+  const AIR_GRADES = ["좋음", "보통", "나쁨", "매우나쁨"];
   async function loadWeather() {
-    const el = $("weather");
+    const el = $("hdr-weather");
     try {
       const w = await getJSON("/api/weather");
       if (w.error) throw new Error(w.error);
-      el.innerHTML = `${weatherIcon(w.code)}<div class="temp">${Math.round(w.temp)}°</div>
-        <div><div class="desc">${esc(w.text)} · 습도 ${w.humidity}%</div><div class="range">최고 ${Math.round(w.max)}° / 최저 ${Math.round(w.min)}°</div></div>
-        <div class="place">${esc(w.name)}</div>`;
+      const g = AIR_GRADES.indexOf(w.air_grade);
+      const air = g >= 0
+        ? `<span>미세먼지</span><span class="air g${g}" title="PM10 ${Math.round(w.pm10)} · PM2.5 ${Math.round(w.pm25)}">${w.air_grade}</span>`
+        : "";
+      el.innerHTML = `${weatherIcon(w.code)}<span class="t">${Math.round(w.temp)}°</span><span class="h">습도 ${Math.round(w.humidity)}%</span>${air}`;
     } catch (e) {
-      el.innerHTML = emptyHTML("날씨 연결 오류", e.message);
+      el.innerHTML = '<span class="h">날씨 정보 없음</span>';
     }
   }
 
@@ -502,7 +532,7 @@
       const put = (id, img, dateId, label) => {
         $(id).innerHTML = img
           ? `<img src="${img.url}?v=${encodeURIComponent(img.updated)}" alt="${label}">`
-          : emptyHTML("SharePoint", `식단표 폴더에 ${label} 이미지를 올리면 표시돼요`);
+          : emptyHTML("SharePoint", `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-daily", d.daily, "menu-daily-date", "오늘 식단");
@@ -514,8 +544,8 @@
 
   function tickClock() {
     const n = new Date();
-    $("date-big").innerHTML = `<small>${n.getFullYear()}년</small>${n.getMonth() + 1}월 ${n.getDate()}일 ${WEEK[n.getDay()]}요일`;
-    $("time-big").textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+    $("hdr-date").textContent = `${n.getMonth() + 1}월 ${n.getDate()}일 (${WEEK[n.getDay()]})`;
+    $("hdr-time").textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
   }
 
   // ───────────────────────── 시작
@@ -535,10 +565,14 @@
 
     const refresh = () => {
       loadSchedule(); loadMemo(); loadNotices(); loadMenu(); loadWeather(); loadStocks();
-      loadNews("abb", "abb-news", 4); loadNews("economy", "econ-news", 4);
+      loadNews("abb", "abb-news", 6); loadEconomy();
     };
     refresh();
     setInterval(refresh, (CFG.refresh_minutes || 5) * 60000);
+    setInterval(() => {
+      if (notices.length > 1) { noticeIdx = (noticeIdx + 1) % Math.min(notices.length, 6); renderNotice(); }
+      if (econ.length > 1) { econIdx = (econIdx + 1) % econ.length; renderEconomy(); }
+    }, 8000);
 
     // 매일 새벽 4시 전체 새로고침 (코드·설정 변경 반영, 메모리 정리)
     setInterval(() => { if (new Date().getHours() === 4 && performance.now() > 3600000) location.reload(); }, 600000);

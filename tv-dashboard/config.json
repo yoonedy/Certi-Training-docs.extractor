@@ -16,12 +16,19 @@
   "load_high": 2,
   "load_extreme": 3,
 
+  "menu_site": "https://abb.sharepoint.com/sites/CanteenReservation",
+
   "memo": { "site": "여수", "tag": "여수 · 예정", "text": "", "file": "data/memo.txt" },
 
   "weather": { "name": "서울", "lat": 37.5665, "lon": 126.9780 },
 
   "news": {
-    "abb": "https://news.google.com/rss/search?q=ABB+%EC%97%90%EC%9D%B4%EB%B9%84%EB%B9%84&hl=ko&gl=KR&ceid=KR:ko",
+    "abb": {
+      "type": "html",
+      "url": "https://new.abb.com/kr",
+      "link_pattern": "/news/detail/",
+      "fallback_rss": "https://news.google.com/rss/search?q=ABB+%EC%BD%94%EB%A6%AC%EC%95%84&hl=ko&gl=KR&ceid=KR:ko"
+    },
     "economy": "https://www.mk.co.kr/rss/30100041/"
   },
 
