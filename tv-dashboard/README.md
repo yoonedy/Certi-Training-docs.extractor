@@ -19,6 +19,7 @@ python server.py          # → http://localhost:8080
 
 서버 없이 화면만 확인하려면 `python tools/build_preview.py` → `preview/tv-preview-all.html`을 브라우저로 연다
 (TV 화면 자동 회전 + 3페이지 한눈에 보기, 지도는 지금 엑셀 데이터 · 나머지는 샘플).
+`--live`를 붙이면 뉴스·ABB 소식·날씨·미세먼지·주가를 지금 실제로 받아서 넣는다 (사내 공지는 메일 연동 전이라 샘플).
 
 TV PC(Windows)에서는 `start_tv.bat` 바로가기를 시작 프로그램에 넣으면 서버 + Edge 키오스크 전체화면으로 뜬다.
 화면은 1920×1080 기준으로 그려지고 어떤 해상도든 비율 맞춰 확대/축소된다.
@@ -111,7 +112,8 @@ TV 서버 PC에서 인터넷이 되어야 한다. 서버가 대신 받아서 캐
 - 날씨·미세먼지: Open-Meteo (키 불필요) — `weather`에 위치. 미세먼지 등급은 환경부 기준
   (PM10 좋음 ≤30 · 보통 ≤80 · 나쁨 ≤150, PM2.5 좋음 ≤15 · 보통 ≤35 · 나쁨 ≤75) 중 나쁜 쪽을 표시
 - ABB 코리아 소식: `news.abb` — new.abb.com/kr 페이지에서 주소에 `link_pattern`(`/news/detail/`)이 들어간 기사 링크 제목을 뽑는다.
-  홈페이지 구조가 바뀌어 못 찾으면 `fallback_rss`(Google 뉴스 "ABB 코리아")로 대신 보여준다
+  홈페이지를 못 읽으면(구조 변경, 접속 거부) `fallback_rss`로 대신 보여준다 — Google 뉴스에서 **ABB 공식 뉴스룸(new.abb.com/news) 기사만**,
+  최근 1년, 최신순. 일반 언론 검색은 회사에 불리한 기사까지 섞여 나와서 쓰지 않는다
 - 경제뉴스: **매일경제 경제 페이지(www.mk.co.kr/news/economy) 위쪽 기사부터** — 3페이지 '경제 주요 뉴스'에 6건, 하단 바에 8초마다 한 줄씩.
   주소가 `/news/economy/숫자`인 기사 링크의 제목을 뽑는다(`link_regex`). 페이지를 못 읽으면 `fallback_rss`(매일경제 경제 RSS)로 자동 전환. 15분에 한 번만 가져온다
   - 네이버 경제 헤드라인(news.naver.com/section/101)으로 바꾸려면 `config.json`의 `economy_naver` 블록 이름을 `economy`로 바꾼다 (기존 `economy`는 지우거나 다른 이름으로)

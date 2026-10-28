@@ -1,6 +1,7 @@
 """서버 없이 열리는 미리보기 파일 만들기.
 
     python tools/build_preview.py            → preview/tv-preview-all.html (TV 화면 + 3페이지 한눈에)
+    python tools/build_preview.py --live     → 뉴스·ABB 소식·날씨·주가를 지금 실제 데이터로 넣어서
 
 지도는 지금 엑셀(config.json의 excel_path)로 그리고, 공지·뉴스·날씨·주가·식단은 샘플 데이터를 넣는다.
 """
@@ -33,7 +34,7 @@ def sample_menu(server, cfg):
     return menu
 
 
-def build_tv(server):
+def build_tv(server, live=False):
     root = server.ROOT
     cfg = server.load_config()
     sched = server.get_schedule(cfg)
@@ -53,6 +54,8 @@ def build_tv(server):
       "/api/stocks": {"items": [{"name": "ABB (SIX)", "price": 52.34, "change": 0.62, "pct": 1.2}, {"name": "KOSPI", "price": 2934.12, "change": -12.3, "pct": -0.42},
                                 {"name": "KOSDAQ", "price": 865.4, "change": 0, "pct": 0}, {"name": "USD/KRW", "price": 1382.5, "change": 3.1, "pct": 0.22}]},
     }
+    if live:
+        live_data(server, api)
     st = root / "static"
     page = (st / "index.html").read_text(encoding="utf-8")
     shim = "<script>const PREVIEW_API=" + json.dumps(api, ensure_ascii=False) + ";window.fetch=async(u)=>{const d=PREVIEW_API[u];return{ok:!!d,status:d?200:404,json:async()=>d}};</script>"
@@ -151,11 +154,27 @@ def build_hub(page):
     return hub
 
 
+def live_data(server, api):
+    """--live: 뉴스·ABB 소식·날씨·미세먼지·주가를 지금 실제로 받아서 미리보기에 넣음 (공지는 메일 연동 전이라 샘플)"""
+    cfg = server.load_config()
+    for feed in ("abb", "economy"):
+        try:
+            api[f"/api/news?feed={feed}"] = server.fetch_news(cfg["news"][feed])
+        except Exception as e:
+            print(f"{feed} 뉴스 실패 → 샘플 유지:", e)
+    for path, fn in (("/api/weather", lambda: server.fetch_weather(cfg["weather"])),
+                     ("/api/stocks", lambda: server.fetch_stocks(cfg.get("stocks", [])))):
+        try:
+            api[path] = fn()
+        except Exception as e:
+            print(path, "실패 → 샘플 유지:", e)
+
+
 def main():
     import server
     out = ROOT / "preview" / "tv-preview-all.html"
     out.parent.mkdir(exist_ok=True)
-    out.write_text(build_hub(build_tv(server)), encoding="utf-8")
+    out.write_text(build_hub(build_tv(server, live="--live" in sys.argv)), encoding="utf-8")
     print(f"wrote {out} ({out.stat().st_size // 1024} KB)")
 
 

@@ -32,7 +32,8 @@
       "type": "html",
       "url": "https://new.abb.com/kr",
       "link_pattern": "/news/detail/",
-      "fallback_rss": "https://news.google.com/rss/search?q=ABB+%EC%BD%94%EB%A6%AC%EC%95%84&hl=ko&gl=KR&ceid=KR:ko"
+      "source": "ABB 코리아",
+      "fallback_rss": "https://news.google.com/rss/search?q=site%3Anew.abb.com%2Fnews+ABB+when%3A1y&hl=ko&gl=KR&ceid=KR:ko"
     },
     "economy": {
       "type": "html",

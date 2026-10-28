@@ -544,7 +544,8 @@
     try {
       const d = await getJSON("/api/news?feed=" + feed);
       if (d.error) throw new Error(d.error);
-      el.innerHTML = (d.items || []).slice(0, max).map((n) => `<li><span class="t">${esc(n.title)}</span><span class="s">${esc(n.source)}</span></li>`).join("")
+      el.innerHTML = (d.items || []).slice(0, max).map((n) => `<li><span class="t">${esc(n.title)}</span>
+        <span class="s">${esc(n.source)}${newsTime(n.date) ? " · " + newsTime(n.date) : ""}</span></li>`).join("")
         || `<li>${emptyHTML("뉴스", "표시할 기사가 없어요")}</li>`;
     } catch (e) {
       el.innerHTML = `<li>${emptyHTML("뉴스 연결 오류", e.message)}</li>`;
@@ -575,7 +576,8 @@
     const d = new Date(s);
     if (!s || isNaN(d)) return "";
     const today = new Date();
-    return d.toDateString() === today.toDateString() ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : `${d.getMonth() + 1}.${d.getDate()}`;
+    if (d.toDateString() === today.toDateString()) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return d.getFullYear() === today.getFullYear() ? `${d.getMonth() + 1}.${d.getDate()}` : `${String(d.getFullYear()).slice(2)}.${d.getMonth() + 1}.${d.getDate()}`;
   }
 
   function renderEconomy() {

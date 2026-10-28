@@ -15,6 +15,8 @@ SharePoint에 올리는 즉시 TV에 반영된다.
 """
 import calendar
 import datetime as dt
+import email.utils
+import html
 import json
 import mimetypes
 import re
@@ -261,12 +263,19 @@ def http_get(url, timeout=10):
 
 
 def strip_html(s):
-    s = re.sub(r"<[^>]+>", " ", s or "")
-    s = s.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
+    s = html.unescape(re.sub(r"<[^>]+>", " ", s or ""))  # &#x27; 같은 숫자 엔티티까지 글자로
     return re.sub(r"\s+", " ", s).strip()
 
 
-def fetch_rss(url, limit=6):
+def _rss_time(item):
+    try:
+        return email.utils.parsedate_to_datetime(item["date"]).timestamp()
+    except (TypeError, ValueError):
+        return 0
+
+
+def fetch_rss(url, limit=8, newest_first=False):
+    """newest_first: Google 뉴스 검색처럼 관련도 순인 피드를 최신순으로 다시 정렬"""
     root = ET.fromstring(http_get(url))
     items = []
     for it in root.iter("item"):
@@ -275,9 +284,9 @@ def fetch_rss(url, limit=6):
         if source and title.endswith(" - " + source):  # Google News 제목 꼬리 제거
             title = title[: -len(source) - 3]
         items.append({"title": title, "source": source, "date": it.findtext("pubDate") or ""})
-        if len(items) >= limit:
-            break
-    return {"items": items}
+    if newest_first:
+        items.sort(key=_rss_time, reverse=True)
+    return {"items": items[:limit]}
 
 
 def _anchor_title(tag, inner):
@@ -359,7 +368,7 @@ def fetch_news(src):
         return fetch_headlines(src)
     except Exception:
         if src.get("fallback_rss"):
-            return fetch_rss(src["fallback_rss"])
+            return fetch_rss(src["fallback_rss"], newest_first=True)
         raise
 
 
@@ -516,7 +525,7 @@ def check_news(cfg):
             items = []
             if isinstance(src, dict) and src.get("fallback_rss"):
                 try:
-                    items = fetch_rss(src["fallback_rss"])["items"]
+                    items = fetch_rss(src["fallback_rss"], newest_first=True)["items"]
                     print("  → 대비용 RSS 사용:", src["fallback_rss"])
                 except Exception as e2:
                     print("  → 대비용 RSS도 실패:", e2)
