@@ -10,6 +10,7 @@
   "rotation_seconds": [60, 40, 40],
   "board_page_seconds": 15,
   "refresh_minutes": 5,
+  "notices_refresh_hours": 6,
 
   "imminent_days": 14,
   "load_high": 2,

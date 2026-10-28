@@ -59,22 +59,40 @@ SharePoint에 있는 파일이면 OneDrive로 그 라이브러리를 TV PC에 **
 
 새 현장이 생기면 `config.json`의 `sites`에 이름·위도·경도·키워드만 추가하면 된다.
 
-## 사내 전체공지 모아보기 (Power Automate 연동)
+## 사내 전체공지 모아보기 (현황판 전용 메일 + Power Automate)
 
-전체공지 메일이 올 때마다 Power Automate가 메일 내용을 SharePoint 폴더에 JSON 파일로 저장하고, TV는 그 폴더를 읽는다.
-최근 공지를 모아 목록으로 보여주고, 8초마다 다음 공지를 크게 보여준다.
+현황판 전용 메일함(예: `auen-board@…`)으로 들어온 메일을 Power Automate가 SharePoint 폴더에 JSON 파일로 저장하고,
+TV는 그 폴더를 `notices_refresh_hours`(기본 6시간)마다 읽는다. 최근 공지를 모아 목록으로 보여주고 8초마다 다음 공지를 크게 보여준다.
 
-1. https://make.powerautomate.com → **만들기 → 자동화된 클라우드 흐름**
-2. 트리거: **Office 365 Outlook – 새 메일이 도착하면 (V3)**
-   - 공유 사서함/배포 목록으로 오면: **공유 사서함에 새 메일이 도착하는 경우 (V2)**
-   - 고급 옵션 → 제목 필터: `[전체공지]` (실제 공지 메일 제목 규칙에 맞게), 또는 보낸 사람 필터
-3. 동작: **SharePoint – 파일 만들기**
-   - 사이트 주소: TV용 SharePoint 사이트, 폴더: `TV/notices`
-   - 파일 이름: `@{formatDateTime(triggerBody()?['receivedDateTime'],'yyyyMMdd-HHmmss')}.json`
-   - 파일 콘텐츠: `@{triggerBody()}`
-4. TV 서버 PC에서 `TV/notices` 폴더를 OneDrive **동기화** → `config.json`의 `notices_dir`에 그 경로
+```
+전체공지 메일 ──(배포 목록에 현황판 메일 추가 / 전달 규칙)──▶ 현황판 전용 메일함
+   ──(Power Automate: 새 메일 → 파일 만들기)──▶ SharePoint TV/notices/*.json
+   ──(OneDrive 동기화)──▶ TV 서버 PC 폴더 ──(6시간마다)──▶ TV 3페이지 '사내 공지'
+```
 
-서버는 `subject`, `from`, `receivedDateTime`, `body`(HTML은 글자만 남김)를 읽는다.
+**1. 전용 메일함에 공지가 들어오게 하기** (IT 또는 메일 관리자)
+- 전체공지 배포 목록(예: 전 직원 그룹)의 **구성원으로 현황판 메일을 추가** → 전 직원에게 가는 공지가 자동으로 들어옴
+- 또는 공지를 받는 사람이 Outlook **규칙**으로 현황판 메일에 자동 전달
+- 전용 메일함이 **공유 사서함**이면 라이선스 없이 만들 수 있고, 흐름을 만드는 사람에게 그 사서함 권한만 주면 됨
+
+**2. Power Automate 흐름** (https://make.powerautomate.com → 만들기 → 자동화된 클라우드 흐름)
+- 트리거
+  - 공유 사서함이면: **Office 365 Outlook – 공유 사서함에 새 메일이 도착하는 경우 (V2)** → 원래 사서함 주소에 현황판 메일
+  - 일반 계정이면: 그 계정으로 로그인해서 **새 메일이 도착하면 (V3)**
+  - 고급 옵션(선택): 제목 필터 `[전체공지]`, 첨부 파일 포함 = 아니요
+- 동작: **SharePoint – 파일 만들기**
+  - 사이트 주소: TV용 SharePoint 사이트(또는 팀 사이트), 폴더 경로: `TV/notices`
+  - 파일 이름: `@{formatDateTime(triggerBody()?['receivedDateTime'],'yyyyMMdd-HHmmss')}.json`
+  - 파일 콘텐츠: `@{triggerBody()}` (메일 JSON 그대로)
+- 저장 → 현황판 메일로 테스트 메일을 보내 `TV/notices`에 파일이 생기는지 확인
+
+**3. TV 서버 PC**
+- SharePoint `TV/notices` 폴더를 열고 **동기화** (OneDrive) → `config.json`의 `notices_dir`에 동기화된 경로
+  (예: `C:/Users/계정/ABB/TV - Documents/notices`)
+- 새 공지가 TV에 나오기까지 최대 `notices_refresh_hours`(6시간). 바로 보고 싶으면 브라우저 새로고침(F5)
+
+서버는 `subject`(제목), `from`(보낸 사람), `receivedDateTime`(받은 시각), `body`(본문, HTML은 글자만 남김)를 읽고 최근 8건을 보여준다.
+공지 파일은 계속 쌓이므로 가끔 오래된 파일을 지우거나, 흐름에 '30일 지난 파일 삭제' 예약 흐름을 하나 더 두면 된다.
 
 ## 식단표 (SharePoint CanteenReservation)
 

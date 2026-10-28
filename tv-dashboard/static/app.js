@@ -682,8 +682,7 @@
     if (todayInfo && todayInfo.term_today) parts.push(`오늘은 <b>${esc(todayInfo.term_today)}</b>`);
     else if (todayInfo && todayInfo.term_next) {
       const d = new Date(todayInfo.term_next.date + "T00:00:00");
-      const left = Math.round((d - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
-      parts.push(`절기 ${esc(todayInfo.term_prev.name)} · 다음 <b>${esc(todayInfo.term_next.name)}</b> ${d.getMonth() + 1}.${d.getDate()} (D-${left})`);
+      parts.push(`절기 ${esc(todayInfo.term_prev.name)} · 다음 <b>${esc(todayInfo.term_next.name)}</b> ${d.getMonth() + 1}.${d.getDate()}`);
     }
     $("td-sub").innerHTML = parts.map((p) => `<span>${p}</span>`).join("");
   }
@@ -745,11 +744,14 @@
     setInterval(tickClock, 10000);
 
     const refresh = () => {
-      loadSchedule(); loadMemo(); loadNotices(); loadMenu(); loadWeather(); loadStocks(); loadToday();
+      loadSchedule(); loadMemo(); loadMenu(); loadWeather(); loadStocks(); loadToday();
       loadNews("abb", "abb-news", 8); loadEconomy();
     };
     refresh();
     setInterval(refresh, (CFG.refresh_minutes || 5) * 60000);
+    // 사내 이메일 공지는 따로 notices_refresh_hours(기본 6시간)마다
+    loadNotices();
+    setInterval(loadNotices, (CFG.notices_refresh_hours || 6) * 3600000);
     setInterval(() => {
       if (notices.length > 1) { noticeIdx = (noticeIdx + 1) % Math.min(notices.length, 6); renderNotice(); }
       if (econ.length > 1) { econIdx = (econIdx + 1) % econ.length; renderEconomy(); }
