@@ -9,7 +9,7 @@
   "menu_weekly_dir": "data/menu/weekly",
 
   "rotation_seconds": [60, 40, 40],
-  "page2_url": "page2.html",
+  "board_page_seconds": 15,
   "refresh_minutes": 5,
 
   "imminent_days": 14,

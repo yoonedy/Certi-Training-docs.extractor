@@ -38,9 +38,15 @@
     <div id="map-error" class="error-banner" hidden></div>
   </section>
 
-  <!-- ───────── 2. 기존 디자인 (page2.html) ───────── -->
-  <section class="page" id="page-legacy">
-    <iframe id="legacy-frame" title="기존 화면" scrolling="no"></iframe>
+  <!-- ───────── 2. 프로젝트 현황판 (월별 일정) ───────── -->
+  <section class="page" id="page-board">
+    <div class="board">
+      <div class="b-grid b-load" id="board-load"></div>
+      <div class="b-grid b-head" id="board-head"></div>
+      <div id="board-rows"></div>
+    </div>
+    <nav class="board-pager" id="board-pager"></nav>
+    <div id="board-error" class="error-banner" hidden></div>
   </section>
 
   <!-- ───────── 3. 사내소식 · 식단 ───────── -->

@@ -5,7 +5,6 @@
 지도는 지금 엑셀(config.json의 excel_path)로 그리고, 공지·뉴스·날씨·주가·식단은 샘플 데이터를 넣는다.
 """
 import base64
-import html
 import json
 import sys
 from pathlib import Path
@@ -18,8 +17,8 @@ def build_tv(server):
     root = server.ROOT
     cfg = server.load_config()
     sched = server.get_schedule(cfg)
-    keys = ("rotation_seconds","page2_url","refresh_minutes","imminent_days","load_high","load_extreme","sites","aliases","weather")
-    c = {k: cfg.get(k) for k in keys}; c["page2_url"] = "about:blank"
+    keys = ("rotation_seconds","board_page_seconds","refresh_minutes","imminent_days","load_high","load_extreme","sites","aliases","weather")
+    c = {k: cfg.get(k) for k in keys}
     api = {
       "/api/config": c, "/api/schedule": sched, "/api/memo": {k: v for k, v in (cfg.get("memo") or {}).items() if k != "file"},
       "/api/notices": {"items": [
@@ -40,8 +39,6 @@ def build_tv(server):
     page = page.replace('<script src="korea-map.js"></script>', shim + "<script>" + (st / "korea-map.js").read_text(encoding="utf-8") + "</script>")
     for f in ("schedule-logic.js", "app.js"):
         page = page.replace(f'<script src="{f}"></script>', "<script>" + (st / f).read_text(encoding="utf-8") + "</script>")
-    p2 = html.escape((st / "page2.html").read_text(encoding="utf-8"), quote=True)
-    page = page.replace('<iframe id="legacy-frame"', f'<iframe id="legacy-frame" srcdoc="{p2}"')
     page = page.replace("<title>KR AUEN TV</title>", "<title>KR AUEN TV 미리보기</title>")
     logo = "data:image/png;base64," + base64.b64encode((st / "abb-logo.png").read_bytes()).decode()
     page = page.replace("abb-logo.png", logo)
@@ -96,7 +93,7 @@ def build_hub(page):
       </header>
 
       <section class="main">
-        <div class="bar"><b id="main-title">TV 화면</b><span class="mode" id="main-mode">자동 회전 중 (지도 60초 → 기존 화면 40초 → 뉴스·식단 40초)</span>
+        <div class="bar"><b id="main-title">TV 화면</b><span class="mode" id="main-mode">자동 회전 중 (지도 → 현황판 → 사내 공지·식단)</span>
           <button id="auto" hidden>자동 회전으로 보기</button></div>
         <div class="screen"><iframe id="main" title="TV 화면"></iframe></div>
       </section>
@@ -104,19 +101,19 @@ def build_hub(page):
       <h2>전체 페이지</h2>
       <div class="grid">
         <button class="thumb" data-page="1"><div class="screen"><iframe title="1페이지" tabindex="-1"></iframe></div><div class="cap"><b>1. 프로젝트 지도</b><span>스케줄 엑셀 연동</span></div></button>
-        <button class="thumb" data-page="2"><div class="screen"><iframe title="2페이지" tabindex="-1"></iframe></div><div class="cap"><b>2. 기존 화면</b><span>page2.html 자리</span></div></button>
+        <button class="thumb" data-page="2"><div class="screen"><iframe title="2페이지" tabindex="-1"></iframe></div><div class="cap"><b>2. 프로젝트 현황판</b><span>월별 일정 · 15초마다 다음 장</span></div></button>
         <button class="thumb" data-page="3"><div class="screen"><iframe title="3페이지" tabindex="-1"></iframe></div><div class="cap"><b>3. 사내 공지 · 식단</b><span>공지 · ABB 소식 · 식단</span></div></button>
       </div>
     </div>
     <script>
     const TV = __TV__;
     const make = (q) => TV.replace("<head>", "<head><script>window.PREVIEW_QUERY=" + JSON.stringify(q) + "<\\/script>");
-    const NAMES = { 1: "1. 프로젝트 지도", 2: "2. 기존 화면", 3: "3. 사내 공지 · 식단" };
+    const NAMES = { 1: "1. 프로젝트 지도", 2: "2. 프로젝트 현황판", 3: "3. 사내 공지 · 식단" };
     const main = document.getElementById("main"), auto = document.getElementById("auto");
     function show(page) {
       main.srcdoc = make(page ? "?page=" + page : "");
       document.getElementById("main-title").textContent = page ? NAMES[page] : "TV 화면";
-      document.getElementById("main-mode").textContent = page ? "이 페이지에 고정" : "자동 회전 중 (지도 60초 → 기존 화면 40초 → 뉴스·식단 40초)";
+      document.getElementById("main-mode").textContent = page ? "이 페이지에 고정" : "자동 회전 중 (지도 → 현황판 → 사내 공지·식단)";
       auto.hidden = !page;
       document.querySelectorAll(".thumb").forEach((t) => t.classList.toggle("on", t.dataset.page === String(page)));
     }

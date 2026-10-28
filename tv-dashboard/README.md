@@ -5,7 +5,7 @@ TV 한 화면에서 3페이지가 자동으로 돌아가는 사내 대시보드.
 | 페이지 | 내용 | 데이터 |
 |---|---|---|
 | 1. 프로젝트 지도 | 현장별 핀·카드, 2주 내 임박(D-day), 현장 부하 경고, 해안선을 도는 ABB 차량 | 스케줄 엑셀 (`입력양식` 시트) |
-| 2. 기존 화면 | 정해진 기존 디자인 | `static/page2.html` (또는 `page2_url`) |
+| 2. 프로젝트 현황판 | 프로젝트별 월간 일정(ABB work · FAT · 납품 · 현장작업), 월별 엔지니어 부하(High / Extremly High), 진행률, 종료일 — 5건씩 `board_page_seconds`(15초)마다 다음 장 | 스케줄 엑셀 (`입력양식` 시트) |
 | 3. 뉴스 & 생활 | 사내 공지(전체공지 메일 모아보기) · ABB 코리아 소식 / 오늘 식단 · 주간 식단 | 전체공지 메일(Power Automate) · new.abb.com/kr · SharePoint 식단 게시판 |
 | 상단 우측 (공통) | 날짜·시각 · 기온 · 습도 · 미세먼지 등급 | Open-Meteo 날씨·대기질 |
 | 하단 바 (공통) | 경제뉴스 헤드라인(8초마다 교체) · 주가 | 경제 RSS · Yahoo Finance |
@@ -26,6 +26,7 @@ TV PC(Windows)에서는 `start_tv.bat` 바로가기를 시작 프로그램에 �
 - `←` / `→` : 페이지 넘기기
 - `?page=1` : 한 페이지에 고정 (설치·점검용)
 - `?today=2026-10-19` : 기준일을 바꿔서 보기
+- `?page=2&board=3` : 현황판 3장에 고정
 
 ## 엑셀 연동
 
@@ -46,6 +47,14 @@ SharePoint에 있는 파일이면 OneDrive로 그 라이브러리를 TV PC에 **
 - 색상 우선순위: **2주 내 임박**(다음 일정이 `imminent_days`일 이내) > **현장작업**(시운전 중/예정) > **FAT** > **ABB Work** > **연간 계약**(이름에 "연간계약")
 - **현장 부하 경고**: ENG별로 "현장작업 중 + 진행 중 연간계약" 수가 `load_high`(2) 이상이면 HIGH, `load_extreme`(3) 이상이면 EXTREME
 - 한 현장에 2건 이상이면 목록 패널(예: 울산 현장 7건), 1건이면 카드. 서쪽 현장은 왼쪽, 동쪽은 오른쪽에 배치하고 넘치면 자동으로 반대편 이동 → 목록 축소 → "외 N건"
+
+### 현황판 규칙 (2페이지, `buildBoard`)
+
+- 이번 달부터 12개월. 종료일이 지나지 않은 행을 엑셀 순서대로 5건씩 보여주고 `board_page_seconds`(15초)마다 다음 장
+- 막대 줄: 맨 위 ABB work · 가운데 FAT/납품(🚚, 붙어 있으면 한 막대) · 아래 현장작업(🚩). 빨간 세로선 = 오늘
+- 맨 위 줄 이름: 그 달에 현장작업 + 연간계약이 2건↑이면 **High**(주황), 3건↑이면 **Extremly High**(분홍) — 지도의 '현장 부하 경고'와 같은 기준 (ENG 기준, `load_high` / `load_extreme`)
+- 막대 왼쪽 위 `!` = 그 기간에 담당 엔지니어가 High / Extremly High
+- 파란 글씨 = 다음 일정, 진행률 = ABB Work 시작 ~ 프로젝트 종료 사이 경과율
 
 새 현장이 생기면 `config.json`의 `sites`에 이름·위도·경도·키워드만 추가하면 된다.
 
@@ -98,6 +107,5 @@ static/index.html       3페이지 화면
 static/app.js           페이지 회전, 지도 배치·자동차 애니메이션, 3페이지 렌더링
 static/schedule-logic.js  엑셀 행 → 상태/색/D-day/부하 계산
 static/korea-map.js     시·도 지도 path (tools/build_map.py로 생성)
-static/page2.html       2페이지 기존 디자인 자리
 tools/check_logic.js    node tools/check_logic.js 2026-10-19  → 콘솔로 결과 확인
 ```

@@ -137,10 +137,64 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 
 .error-banner { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); background: #fff4f4; border: 2px solid var(--imminent); color: var(--imminent); padding: 10px 20px; border-radius: 12px; font-size: 17px; font-weight: 600; z-index: 10; }
 
-/* ───────── 2. 기존 화면 ───────── */
-/* 기존 디자인은 상단 바까지 화면 전체를 그대로 사용 */
-#page-legacy { inset: 0; z-index: 25; }
-#legacy-frame { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: var(--sea); }
+/* ───────── 2. 프로젝트 현황판 ───────── */
+#page-board { background: #eef1f5; }
+.board { position: absolute; left: 36px; right: 36px; top: 12px; }
+.b-grid { display: grid; grid-template-columns: 300px 140px repeat(12, 1fr) 112px; }
+.b-load { background: #fff; border: 1px solid #e3e7ee; border-radius: 14px; min-height: 74px; margin-bottom: 10px; }
+.b-load .b-cell { border-left: 1px solid #eef0f4; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.b-legend { grid-column: span 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 22px; }
+.b-legend i { width: 2px; height: 20px; background: #2a2f3b; }
+.b-legend .lv { font-size: 21px; }
+.b-legend small { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
+.lv { font-size: 17px; font-weight: 800; }
+.lv.high { color: #f08a1c; } .lv.extreme { color: #e5197a; }
+
+.b-head { background: #fff; border: 1px solid #e3e7ee; border-radius: 14px; height: 56px; align-items: center; margin-bottom: 10px; overflow: hidden; }
+.b-head .h-name { padding-left: 22px; font-size: 18px; font-weight: 800; }
+.b-head .h-who { font-size: 18px; font-weight: 800; text-align: center; }
+.b-head .h-month { margin: 0 4px; height: 38px; display: flex; align-items: center; justify-content: center; border: 1px solid #e3e7ee; border-radius: 19px; font-size: 17px; font-weight: 600; color: var(--ink-2); }
+.b-head .h-month.now { border-color: var(--imminent); color: var(--imminent); font-weight: 800; }
+.b-head .h-end { align-self: stretch; display: flex; align-items: center; justify-content: center; background: #fdf0f1; font-size: 18px; font-weight: 800; }
+
+.b-row { background: #fff; border: 1px solid #e3e7ee; border-radius: 14px; height: 146px; margin-bottom: 8px; overflow: hidden; }
+.r-info { padding: 14px 18px 10px 22px; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr auto; column-gap: 10px; min-width: 0; }
+.r-info .no { grid-column: span 2; font-size: 14px; color: var(--ink-3); }
+.r-info .nm { grid-column: span 2; font-size: 17px; font-weight: 700; line-height: 1.3; margin-top: 3px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.r-info .nx { grid-column: span 2; font-size: 14px; font-weight: 700; color: #3d5bd9; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-info .pg { align-self: center; height: 5px; background: #e8eaf0; border-radius: 3px; overflow: hidden; }
+.r-info .pg i { display: block; height: 100%; background: #5b5fa8; border-radius: 3px; }
+.r-info .pct { font-size: 13px; font-weight: 700; color: #5b5fa8; }
+.r-who { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding-left: 10px; font-size: 17px; }
+.r-who div { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.role { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: #5b5fa8; color: #fff; }
+.role.e { background: #e8eaf0; color: var(--ink-2); }
+
+/* 월 칸 위에 단계별 막대 (줄: ABB work / FAT·납품 / 현장작업) */
+.r-track { grid-column: span 12; position: relative; border-left: 1px solid #eef0f4;
+  background: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / 12 - 1px), #eef0f4 calc(100% / 12 - 1px), #eef0f4 calc(100% / 12)); }
+.r-track .today { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(227, 38, 59, .45); }
+.bar { position: absolute; height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 8px; min-width: 14px;
+  background: #ecebf8; border: 1.5px solid #5b5fa8; border-radius: 4px; color: #3b3f8f; font-size: 17px; font-weight: 800; white-space: nowrap; overflow: visible; }
+.bar span { overflow: hidden; text-overflow: ellipsis; }
+.bar small { margin-left: auto; font-size: 13px; font-weight: 600; color: #6b6fa8; }
+.bar .ico { flex: none; width: 22px; height: 18px; color: #3b3f8f; }
+.bar.site .ico { color: #8e3f78; margin-left: auto; }
+.bar small + .ico { margin-left: 0; }
+.bar.del { justify-content: center; padding: 0 4px; }
+.bar .ld { position: absolute; left: -7px; top: -7px; width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; border: 1.5px solid #fff; }
+.bar .ld.high { background: #f08a1c; } .bar .ld.extreme { background: #e5197a; }
+.r-end { display: flex; align-items: center; justify-content: center; padding: 10px; background: #fffafa; }
+.end-card { width: 86px; height: 120px; border: 1.5px solid #e88a93; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 16px 0 14px; }
+.end-card span { font-size: 16px; font-weight: 700; color: #d6455a; }
+.end-card b { font-size: 17px; font-weight: 800; color: #c22a40; }
+.b-empty { background: #fff; border-radius: 14px; padding: 60px; }
+.board-pager { position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); display: flex; gap: 8px; }
+.board-pager i { font-style: normal; width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  background: #fff; color: #b0b5c0; font-size: 15px; font-weight: 700; border: 1px solid #e3e7ee; }
+.board-pager i.on { background: #b3121f; color: #fff; border-color: #b3121f; }
 
 /* ───────── 3. 사내 공지 · ABB 소식 · 식단 ───────── */
 #page-info { display: grid; grid-template-columns: 1.12fr 1fr; gap: 24px; padding: 28px 48px 80px; background: #eef2f6; }

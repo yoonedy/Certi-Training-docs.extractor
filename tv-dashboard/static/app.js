@@ -57,7 +57,7 @@
 
   const PAGES = [
     { id: "page-map", title: "KR AUEN PROJECT OVERVIEW" },
-    { id: "page-legacy", title: "" },
+    { id: "page-board", title: "KR AUEN PROJECT SCHEDULE" },
     { id: "page-info", title: "KR AUEN NEWS & LIFE" },
   ];
   let pageIdx = 0, pageTimer = null;
@@ -67,11 +67,13 @@
     pageIdx = (i + enabled.length) % enabled.length;
     const page = enabled[pageIdx];
     for (const p of PAGES) $(p.id).classList.toggle("active", p === page);
-    if (page.title) $("page-title").textContent = page.title;
+    $("page-title").textContent = page.title;
+    if (page.id === "page-board") startBoardPaging();
     $("dots").innerHTML = enabled.map((p, k) => `<i class="${k === pageIdx ? "on" : ""}"></i>`).join("");
     if (params.has("page")) return;
     clearTimeout(pageTimer);
-    const secs = (CFG.rotation_seconds || [])[PAGES.indexOf(page)] || 40;
+    let secs = (CFG.rotation_seconds || [])[PAGES.indexOf(page)] || 40;
+    if (page.id === "page-board") secs = Math.max(secs, boardPages() * (CFG.board_page_seconds || 15)); // 현황판은 모든 장을 다 보여줌
     pageTimer = setTimeout(() => showPage(pageIdx + 1), secs * 1000);
   }
 
@@ -398,13 +400,107 @@
       const data = await getJSON("/api/schedule");
       if (data.error) throw new Error(data.error);
       renderMap(data);
+      renderBoard(data);
       $("last-update").textContent = "엑셀 업데이트 " + fmtUpdate(data.updated);
-      $("map-error").hidden = !data.stale;
-      if (data.stale) $("map-error").textContent = "엑셀을 읽지 못해 이전 데이터를 표시 중: " + data.stale;
+      for (const id of ["map-error", "board-error"]) {
+        $(id).hidden = !data.stale;
+        if (data.stale) $(id).textContent = "엑셀을 읽지 못해 이전 데이터를 표시 중: " + data.stale;
+      }
     } catch (e) {
-      $("map-error").hidden = false;
-      $("map-error").textContent = "스케줄을 불러오지 못했습니다 · " + e.message;
+      for (const id of ["map-error", "board-error"]) {
+        $(id).hidden = false;
+        $(id).textContent = "스케줄을 불러오지 못했습니다 · " + e.message;
+      }
     }
+  }
+
+  // ───────────────────────── 2. 프로젝트 현황판
+
+  const BOARD_ROWS_PER_PAGE = 5;
+  const TRUCK = '<svg class="ico" viewBox="0 0 24 16"><path d="M1 2h13v10H1zM14 6h5l3 3v3h-8z" fill="currentColor"/><circle cx="5" cy="13.5" r="2.2" fill="#fff" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="13.5" r="2.2" fill="#fff" stroke="currentColor" stroke-width="1.6"/></svg>';
+  const FLAG = '<svg class="ico" viewBox="0 0 20 20"><path d="M5 18V2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 3h9l-2.5 3.5L15 10H6z" fill="currentColor"/><ellipse cx="9" cy="18" rx="7" ry="1.8" fill="currentColor" opacity=".35"/></svg>';
+  const BAR_LABEL = { abb: ["ABB work", "ABB"], fat: ["FAT", "FAT"], del: ["", ""], site: ["현장작업", "현장"] };
+  let board = null, boardPage = 0, boardTimer = null;
+
+  const ym = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const boardPages = () => (board ? Math.max(1, Math.ceil(board.rows.length / BOARD_ROWS_PER_PAGE)) : 1);
+
+  function renderBoard(data) {
+    const t = today();
+    board = ScheduleLogic.buildBoard(data.projects || [], CFG, t, 12);
+    const months = board.months;
+    $("board-load").innerHTML =
+      `<div class="b-legend"><span class="lv high">High</span><i></i><span class="lv extreme">Extremly High</span>
+        <small>현장작업 + 연간계약 ${CFG.load_high ?? 2}건↑ High · ${CFG.load_extreme ?? 3}건↑ Extremly High</small></div>` +
+      board.load.map((L) => `<div class="b-cell">${L.people.map((p) => `<span class="lv ${p.level}">${esc(p.name)}</span>`).join("")}</div>`).join("") +
+      '<div class="b-cell"></div>';
+    $("board-head").innerHTML = '<div class="h-name">Project No / Project Name</div><div class="h-who">담당자</div>' +
+      months.map((m, k) => `<div class="h-month${k === 0 ? " now" : ""}">${m.label}</div>`).join("") + '<div class="h-end">종료일</div>';
+    const fixed = parseInt(params.get("board"), 10); // ?board=2 : 현황판 2장 고정 (점검용)
+    boardPage = Math.min(fixed ? fixed - 1 : boardPage, boardPages() - 1);
+    renderBoardPage();
+  }
+
+  // 며칠짜리 단계도 글자가 보이도록 최소 너비(개월 단위)를 줌
+  const BAR_MIN = { abb: 0.5, fat: 0.55, del: 0.4, site: 0.6 };
+
+  function boardBars(r) {
+    const bars = r.phases.filter((p) => p.visible).map((p) => ({ ...p, dto: Math.min(12, Math.max(p.to, p.from + BAR_MIN[p.key])) }));
+    // FAT 바로 뒤에 납품이 붙어 있으면 한 막대로 합침 ("FAT 🚚")
+    const fat = bars.find((b) => b.key === "fat"), del = bars.find((b) => b.key === "del");
+    if (fat && del && del.from <= fat.dto + 0.05) {
+      fat.dto = Math.max(fat.dto, del.dto);
+      fat.truck = true;
+      fat.tip = `FAT ${ymd(fat.s)} ~ ${ymd(fat.e)} / 납품 ${ymd(del.s)} ~ ${ymd(del.e)}`;
+      fat.load = fat.load === "extreme" || del.load === "extreme" ? "extreme" : fat.load || del.load;
+      bars.splice(bars.indexOf(del), 1);
+    }
+    return bars;
+  }
+
+  function barHTML(ph) {
+    const left = (ph.from / 12) * 100, width = ((ph.dto - ph.from) / 12) * 100;
+    const px = (width / 100) * 1290; // 대략적인 막대 너비(px)
+    const [long, short] = BAR_LABEL[ph.key];
+    const icon = ph.key === "del" || ph.truck ? TRUCK : ph.key === "site" && px >= 125 ? FLAG : "";
+    const text = px >= (icon ? 125 : 95) ? long : px >= (icon ? 80 : 46) ? short : "";
+    const until = px > 230 ? `<small>~${ScheduleLogic.fmtDate(ph.e, today())}</small>` : "";
+    const badge = ph.load ? `<b class="ld ${ph.load}" title="${ph.load === "extreme" ? "Extremly High" : "High"}">!</b>` : "";
+    return `<div class="bar ${ph.key}" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%;top:${8 + ph.lane * 42}px"
+      title="${esc(ph.tip || `${ph.label} ${ymd(ph.s)} ~ ${ymd(ph.e)}`)}">${badge}<span>${text}</span>${until}${icon}</div>`;
+  }
+
+  function renderBoardPage() {
+    if (!board) return;
+    const rows = board.rows.slice(boardPage * BOARD_ROWS_PER_PAGE, (boardPage + 1) * BOARD_ROWS_PER_PAGE);
+    const todayLeft = (board.today / 12) * 100;
+    $("board-rows").innerHTML = rows.map((r) => {
+      const next = r.st.next ? `${ScheduleLogic.fmtDate(r.st.next.date, today())} ${r.st.next.label}` : r.st.annual ? "연간 계약" : "";
+      return `<div class="b-grid b-row">
+        <div class="r-info"><div class="no">KR-${esc(r.no)}</div><div class="nm">${esc(r.name)}</div>
+          <div class="nx">${esc(next)}</div>
+          <div class="pg"><i style="width:${r.progress}%"></i></div><span class="pct">${r.progress}%</span></div>
+        <div class="r-who"><div><b class="role">P</b>${esc(r.pm)}</div>${r.eng.map((n) => `<div><b class="role e">E</b>${esc(n)}</div>`).join("")}</div>
+        <div class="r-track"><i class="today" style="left:${todayLeft.toFixed(3)}%"></i>${boardBars(r).map(barHTML).join("")}</div>
+        <div class="r-end"><div class="end-card"><span>종료일</span><b>${ym(r.st.end)}</b></div></div>
+      </div>`;
+    }).join("") || `<div class="b-empty">${emptyHTML("현황판", "진행 중이거나 예정된 프로젝트가 없어요")}</div>`;
+    const n = boardPages();
+    $("board-pager").innerHTML = n > 1 ? Array.from({ length: n }, (_, k) => `<i class="${k === boardPage ? "on" : ""}">${k + 1}</i>`).join("") : "";
+  }
+
+  // 현황판이 화면에 나오면 1장부터 board_page_seconds마다 넘김
+  function startBoardPaging() {
+    clearInterval(boardTimer);
+    if (params.has("board")) return;
+    boardPage = 0;
+    renderBoardPage();
+    boardTimer = setInterval(() => {
+      if (!$("page-board").classList.contains("active")) return clearInterval(boardTimer);
+      boardPage = (boardPage + 1) % boardPages();
+      renderBoardPage();
+    }, (CFG.board_page_seconds || 15) * 1000);
   }
 
   // ───────────────────────── 3. 사내소식 · 식단
@@ -555,8 +651,6 @@
     fitStage();
     CFG = await getJSON("/api/config");
 
-    if (CFG.page2_url) $("legacy-frame").src = CFG.page2_url;
-    else PAGES[1].disabled = true;
 
     drawBaseMap();
     requestAnimationFrame(animateCar);

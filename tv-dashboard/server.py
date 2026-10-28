@@ -399,7 +399,7 @@ class Handler(SimpleHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         p = url.path
         if p == "/api/config":
-            keys = ("rotation_seconds", "page2_url", "refresh_minutes", "imminent_days", "load_high",
+            keys = ("rotation_seconds", "board_page_seconds", "refresh_minutes", "imminent_days", "load_high",
                     "load_extreme", "sites", "aliases", "weather")
             return self.send_json({k: cfg.get(k) for k in keys})
         if p == "/api/schedule":
