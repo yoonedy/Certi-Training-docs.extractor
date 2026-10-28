@@ -650,9 +650,34 @@
     });
   }
 
+  // 글자 인식된 주간 식단 → 오늘 식단(중식 | 석식 + 사이드) · 주간 식단 표
+  const menuItems = (list) => (list || []).map((m) => `<li>${esc(m)}</li>`).join("");
+
+  function renderMenuText(text) {
+    const todayISO = ymd(new Date());
+    const day = text.days.find((d) => d.date === todayISO);
+    const dow = new Date().getDay();
+    $("menu-daily").innerHTML = day
+      ? `<div class="menu-today">
+          <div class="mt-col"><h4>중식</h4><ul>${menuItems(day.lunch)}</ul></div>
+          <div class="mt-col"><h4>석식</h4><ul>${menuItems(day.dinner)}</ul></div>
+          <div class="mt-side"><b>사이드</b>${day.side.map(esc).join(" · ")}</div></div>`
+      : emptyHTML(dow === 0 || dow === 6 ? "주말" : "식단 없음", dow === 0 || dow === 6 ? "주말에는 식단이 없어요" : "이번 주 식단표가 아직 올라오지 않았어요");
+    $("menu-daily-date").textContent = day ? `${day.label} · 글자 자동 인식` : "";
+    $("menu-weekly").innerHTML = `<table class="menu-week">
+      <thead><tr><th></th>${text.days.map((d) => `<th class="${d.date === todayISO ? "on" : ""}">${esc(d.label)}</th>`).join("")}</tr></thead>
+      <tbody>${[["lunch", "중식"], ["side", "사이드"], ["dinner", "석식"]].map(([k, name]) => `<tr class="${k}"><th>${name}</th>${text.days.map((d) =>
+        `<td class="${d.date === todayISO ? "on" : ""}">${(d[k] || []).map(esc).join("<br>")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+
   async function loadMenu() {
     try {
       const d = await getJSON("/api/menu");
+      if (d.weekly && d.text && d.text.days && !d.daily) {
+        renderMenuText(d.text);
+        $("menu-weekly-date").textContent = d.weekly.updated.replace("T", " ") + " 업로드 · 글자 자동 인식";
+        return;
+      }
       const put = (id, img, dateId, label) => {
         $(id).innerHTML = img
           ? `<img src="${imgSrc(img)}" alt="${label}">`

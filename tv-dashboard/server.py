@@ -5,7 +5,7 @@
 - /api/schedule : 스케줄 엑셀(.xlsb/.xlsx) → JSON. 파일이 바뀌면 자동으로 다시 읽음
 - /api/memo     : 지도 하단 메모 (memo.file 텍스트 파일 → 없으면 config의 memo.text)
 - /api/notices  : Power Automate가 notices_dir에 저장한 전체공지 JSON 목록
-- /api/menu     : menu_daily_dir / menu_weekly_dir 의 최신 식단표 이미지
+- /api/menu     : menu_daily_dir / menu_weekly_dir 의 최신 식단표 이미지 + 주간 식단표 글자 인식 결과(text)
 - /api/news     : ABB 소식 / 경제뉴스 RSS (15분 캐시)
 - /api/weather  : Open-Meteo 현재 기온 (10분 캐시)
 - /api/stocks   : Yahoo Finance 시세 (5분 캐시)
@@ -210,7 +210,38 @@ def get_menu(cfg):
         daily["url"] = "/files/menu-daily/" + urllib.parse.quote(daily["rel"])
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
-    return {"daily": daily, "weekly": weekly}
+    out = {"daily": daily, "weekly": weekly}
+    if weekly and cfg.get("menu_ocr", {}).get("enabled", True):
+        out["text"] = menu_text(cfg, resolve(cfg["menu_weekly_dir"]) / weekly["rel"])
+    return out
+
+
+# 주간 식단표 글자 읽기는 몇 초 걸리므로 새 이미지가 보이면 뒤에서 한 번만 돌리고 결과를 기억해 둠
+_ocr = {"key": None, "result": None, "running": False}
+_ocr_lock = threading.Lock()
+
+
+def menu_text(cfg, path):
+    key = (str(path), path.stat().st_mtime)
+    with _ocr_lock:
+        if _ocr["key"] == key:
+            return _ocr["result"]
+        if _ocr["running"]:
+            return None
+        _ocr["running"] = True
+    opts = cfg.get("menu_ocr", {})
+
+    def work():
+        try:
+            import menu_ocr
+            result = menu_ocr.read_menu(path, opts.get("tesseract_cmd", "tesseract"), opts.get("cutoff", 0.68))
+        except Exception as e:  # Tesseract가 없거나 양식이 달라도 화면은 이미지로 계속 보여줌
+            result = {"error": str(e)}
+        with _ocr_lock:
+            _ocr.update(key=key, result=result, running=False)
+
+    threading.Thread(target=work, daemon=True).start()
+    return None
 
 
 # ---------------------------------------------------------------- 외부 데이터 (캐시)

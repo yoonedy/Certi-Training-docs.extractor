@@ -230,6 +230,25 @@ body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: anti
 .menu-img img, .menu-img canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
 #menu-daily canvas { height: 100%; width: auto; }
 #menu-weekly img { width: 100%; height: 100%; }
+
+/* 글자로 읽은 식단 */
+.menu-img:has(.menu-today), .menu-img:has(.menu-week) { background: none; align-items: stretch; }
+.menu-today { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; gap: 14px 18px; }
+.mt-col { background: #f6f8fb; border-radius: 12px; padding: 14px 20px; }
+.mt-col h4 { font-size: 17px; font-weight: 800; color: var(--red); margin-bottom: 8px; }
+.mt-col ul { list-style: none; }
+.mt-col li { font-size: 21px; font-weight: 700; padding: 3px 0; }
+.mt-col li:first-child { color: var(--ink-2); font-weight: 600; }
+.mt-side { grid-column: span 2; background: #fff6dc; border-radius: 10px; padding: 9px 16px; font-size: 18px; font-weight: 700; }
+.mt-side b { color: #b07a00; margin-right: 12px; }
+.menu-week { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 15px; text-align: center; }
+.menu-week th, .menu-week td { padding: 5px 4px; border-bottom: 1px solid #edf0f4; line-height: 1.45; }
+.menu-week thead th { font-size: 14px; color: var(--ink-2); background: #f6f8fb; }
+.menu-week thead th:first-child { width: 56px; }
+.menu-week tbody th { font-size: 14px; color: var(--ink-2); }
+.menu-week tr.side td, .menu-week tr.side th { background: #fff6dc; font-size: 13px; }
+.menu-week .on { background: #fdecee; color: var(--ink); font-weight: 700; }
+.menu-week thead th.on { color: var(--red); }
 .empty { color: var(--ink-3); font-size: 17px; text-align: center; padding: 14px; line-height: 1.6; }
 .empty b { display: inline-block; background: #e4e8ef; color: var(--ink-2); font-size: 13px; padding: 2px 10px; border-radius: 10px; margin-bottom: 6px; }
 

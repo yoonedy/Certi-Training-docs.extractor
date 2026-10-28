@@ -91,6 +91,23 @@ SharePoint는 로그인이 필요해서 TV 서버가 페이지를 직접 열 수
   자르는 위치는 `config.json`의 `menu_today_crop` (이미지 너비·높이 대비 비율, 지금 FOODONE 주간식단표 양식 기준).
   식단표 양식이 바뀌면 이 숫자만 고치면 된다.
 
+### 식단표 글자 읽기 (OCR)
+
+주간 식단표 이미지의 글자를 읽어 **텍스트로** 보여준다 (오늘 식단: 중식 | 석식 + 사이드, 주간 식단: 요일별 표, 오늘 열 강조).
+글자를 못 읽으면(Tesseract 없음, 양식이 다름) 위의 이미지 방식으로 자동으로 돌아간다.
+
+- 새 식단표 이미지가 보이면 서버가 뒤에서 한 번 읽고(몇 초) 결과를 기억해 둔다
+- 표 칸은 색으로 찾는다: 초록 = 날짜 줄, 노랑 = 사이드 줄, 머리줄의 밝은 틈 = 요일 경계 (`menu_ocr.py`)
+- 날짜는 머리줄의 "10월26일"을 읽어 그 주 월요일을 정한다 (못 읽으면 이번 주)
+- 읽은 글자는 메뉴 사전과 비교해 가장 가까운 메뉴로 고친다 (`menu_ocr.cutoff`, 기본 0.68)
+  - 기본 사전: `tools/menu_words.txt`, 우리 식당 메뉴 추가: `data/menu/menu_words.txt` (한 줄에 하나)
+  - **사전에 없는 새 메뉴는 읽은 그대로 나오므로 가끔 글자가 틀릴 수 있다** → 틀린 메뉴를 사전 파일에 적어 두면 다음부터 맞게 나온다
+- 점검: `python menu_ocr.py 식단표.png` → 읽은 결과 출력
+
+**TV 서버 PC(Windows) 설치**: https://github.com/UB-Mannheim/tesseract/wiki 에서 Tesseract 설치 프로그램을 받아 설치할 때
+"Additional language data"에서 **Korean**을 체크 → `config.json`의 `menu_ocr.tesseract_cmd`를
+`C:/Program Files/Tesseract-OCR/tesseract.exe`로 지정. `pip install -r requirements.txt`로 Pillow도 설치.
+
 ## 날씨 · 미세먼지 · 뉴스 · 주가
 
 TV 서버 PC에서 인터넷이 되어야 한다. 서버가 대신 받아서 캐시한다.

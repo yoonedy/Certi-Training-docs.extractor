@@ -17,6 +17,12 @@
   "load_extreme": 3,
 
   "menu_site": "https://abb.sharepoint.com/sites/CanteenReservation",
+  "menu_ocr": {
+    "comment": "주간 식단표 이미지의 글자를 읽어 텍스트로 표시 (Tesseract + 한국어 필요). 못 읽으면 이미지로 표시",
+    "enabled": true,
+    "tesseract_cmd": "tesseract",
+    "cutoff": 0.68
+  },
   "menu_today_crop": {
     "comment": "오늘 식단 이미지가 따로 없으면 주간 식단표에서 오늘 요일 칸을 잘라 보여줌. 값은 이미지 너비/높이 대비 비율 (FOODONE 주간식단표 양식 기준)",
     "label": [0.0129, 0.0573],

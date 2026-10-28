@@ -15,13 +15,21 @@ sys.path.insert(0, str(ROOT))
 
 def sample_menu(server, cfg):
     """식단 폴더에 이미지가 있으면 미리보기에 그대로 넣음 (없으면 빈칸)"""
-    menu = server.get_menu(cfg)
+    menu = server.get_menu({**cfg, "menu_ocr": {"enabled": False}})  # 서버식 백그라운드 인식은 끄고 아래에서 바로 읽음
     for key, folder in (("daily", "menu_daily_dir"), ("weekly", "menu_weekly_dir")):
         img = menu.get(key)
         if img:
             f = server.resolve(cfg[folder]) / img["rel"]
             mime = "image/png" if f.suffix.lower() == ".png" else "image/jpeg"
             img["url"] = f"data:{mime};base64," + base64.b64encode(f.read_bytes()).decode()
+    if menu.get("weekly") and not menu.get("text"):  # 서버는 뒤에서 읽지만 미리보기는 여기서 바로 읽음
+        try:
+            import menu_ocr
+            opts = cfg.get("menu_ocr", {})
+            menu["text"] = menu_ocr.read_menu(server.resolve(cfg["menu_weekly_dir"]) / menu["weekly"]["rel"],
+                                              opts.get("tesseract_cmd", "tesseract"), opts.get("cutoff", 0.68))
+        except Exception as e:
+            print("식단 글자 인식 생략:", e)
     return menu
 
 
