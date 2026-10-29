@@ -1,4 +1,4 @@
-"""주간 식단표 이미지 → 요일별 메뉴 텍스트 (Tesseract OCR, 한국어).
+"""주간 식단표 이미지 → 요일별 메뉴 텍스트 (Tesseract 또는 Windows 내장 OCR, 한국어).
 
 FOODONE 'ABB코리아 주간식단표' 양식을 기준으로
   - 초록 줄 = 날짜 머리줄, 노란 줄 = 사이드, 그 위 = 중식, 그 아래 = 석식
@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent
 WORD_FILES = [ROOT / "tools" / "menu_words.txt", ROOT / "data" / "menu" / "menu_words.txt"]
 GREEN, YELLOW = (146, 208, 80), (255, 192, 0)
 WEEK = "월화수목금"
+WINDOWS = "windows"  # tesseract 대신 Windows 내장 OCR을 쓴다는 표시
 
 
 def _near(c, t, d=45):
@@ -120,6 +121,8 @@ def find_grid(im):
 # ---------------------------------------------------------------- 글자 읽기
 
 def _tesseract(img, psm, cmd):
+    if cmd == WINDOWS:
+        return _clean(_windows_lines(img))
     with tempfile.TemporaryDirectory() as d:
         p = Path(d) / "cell.png"
         img.save(p)
@@ -127,8 +130,20 @@ def _tesseract(img, psm, cmd):
         env = {**os.environ, "OMP_THREAD_LIMIT": "1"}
         out = subprocess.run([cmd, str(p), "-", "-l", "kor", "--psm", str(psm)],
                              capture_output=True, text=True, encoding="utf-8", timeout=60, env=env).stdout
-    lines = [re.sub(r"[^가-힣a-zA-Z0-9/&]", "", l) for l in out.splitlines()]
+    return _clean(out.splitlines())
+
+
+def _clean(lines):
+    lines = [re.sub(r"[^가-힣a-zA-Z0-9/&]", "", l) for l in lines]
     return [l for l in lines if len(l) >= 2]
+
+
+def _windows_lines(img):
+    """Windows 10/11 내장 글자 인식 (pip install winocr). 설치 프로그램 없이 Windows의 한국어 OCR을 씀"""
+    import winocr
+    r = winocr.recognize_pil_sync(img.convert("RGB"), "ko")
+    lines = r["lines"] if isinstance(r, dict) else r.lines
+    return [l["text"] if isinstance(l, dict) else l.text for l in lines]
 
 
 def _cell(im, box, scale):
@@ -204,7 +219,14 @@ def find_tesseract(cmd="tesseract"):
             exe = Path(base) / "Tesseract-OCR" / "tesseract.exe"
             if exe.is_file():
                 return str(exe)
-    raise FileNotFoundError(f"Tesseract 실행 파일 없음: {cmd} (설치했다면 config.json의 tesseract_cmd에 tesseract.exe 경로를 넣어 주세요)")
+    # Tesseract가 없으면 Windows 내장 OCR (회사 PC에서 설치 프로그램을 못 받을 때)
+    try:
+        import winocr  # noqa: F401
+        return WINDOWS
+    except Exception:
+        pass
+    raise FileNotFoundError("글자 읽기 프로그램 없음 → 명령 프롬프트에서 'pip install winocr' 실행 후 서버를 다시 켜 주세요 "
+                            "(또는 Tesseract 설치)")
 
 
 def read_menu(path, cmd="tesseract", cutoff=0.68, today=None):

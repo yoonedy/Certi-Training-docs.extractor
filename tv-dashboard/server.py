@@ -444,7 +444,7 @@ def menu_text(cfg, path):
         try:
             import menu_ocr
             result = menu_ocr.read_menu(path, opts.get("tesseract_cmd", "tesseract"), opts.get("cutoff", 0.68))
-        except Exception as e:  # Tesseract가 없거나 양식이 달라도 화면은 이미지로 계속 보여줌
+        except Exception as e:  # 글자 읽기 프로그램이 없거나 양식이 달라도 화면은 이미지로 계속 보여줌
             result = {"error": str(e)}
         with _ocr_lock:
             _ocr.update(key=key, result=result, running=False)

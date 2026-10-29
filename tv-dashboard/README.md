@@ -130,7 +130,7 @@ SharePoint는 로그인이 필요해서 TV 서버가 페이지를 직접 열 수
 
 주간 식단표 이미지의 글자를 읽어 **요일별 카드**로 보여준다 (오늘 카드 하늘색, 매일 나오는 밥·김치는 흐리게).
 글자를 못 읽을 때는 식단표 그림에서 제목·로고·아래 안내 상자를 잘라내고 **표 부분만** 보여준다.
-글자를 못 읽으면(Tesseract 없음, 양식이 다름) 식단표 이미지를 그대로 보여준다.
+글자를 못 읽으면(글자 읽기 프로그램 없음, 양식이 다름) 식단표 이미지를 그대로 보여준다.
 
 - 새 식단표 이미지가 보이면 서버가 뒤에서 한 번 읽고(몇 초) 결과를 기억해 둔다
 - 표 칸은 색으로 찾는다: 초록 = 날짜 줄, 노랑 = 사이드 줄, 머리줄의 밝은 틈 = 요일 경계 (`menu_ocr.py`)
@@ -140,9 +140,14 @@ SharePoint는 로그인이 필요해서 TV 서버가 페이지를 직접 열 수
   - **사전에 없는 새 메뉴는 읽은 그대로 나오므로 가끔 글자가 틀릴 수 있다** → 틀린 메뉴를 사전 파일에 적어 두면 다음부터 맞게 나온다
 - 점검: `python menu_ocr.py 식단표.png` → 읽은 결과 출력
 
-**TV 서버 PC(Windows) 설치**: https://github.com/UB-Mannheim/tesseract/wiki 에서 Tesseract 설치 프로그램을 받아 설치할 때
-"Additional language data"에서 **Korean**을 체크 → `config.json`의 `menu_ocr.tesseract_cmd`를
-`C:/Program Files/Tesseract-OCR/tesseract.exe`로 지정. `pip install -r requirements.txt`로 Pillow도 설치.
+**TV 서버 PC(Windows) 설치** — 둘 중 하나면 된다 (서버가 알아서 찾음):
+- **A. Windows 내장 글자 인식 (추천, 설치 프로그램 필요 없음)**: 명령 프롬프트에서 `pip install winocr`
+  (`pip install -r requirements.txt`에 포함). Windows 표시 언어가 한국어면 한국어 OCR이 이미 들어 있다.
+  영어 Windows면 설정 → 시간 및 언어 → 언어 → 한국어 추가.
+- **B. Tesseract**: https://github.com/UB-Mannheim/tesseract/wiki 에서 설치 시 "Additional language data"에서 **Korean** 체크.
+  기본 위치(Program Files 등)에 설치하면 경로 설정 없이 찾는다.
+
+설치 후 서버를 껐다 켜야 다시 읽는다. 안 될 때: `http://localhost:8080/api/menu`의 `"text"` → `"error"`에 이유가 나온다.
 
 ## 음력 · 24절기 (3페이지 '오늘' 칸)
 

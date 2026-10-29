@@ -33,7 +33,7 @@
 
   "menu_site": "https://abb.sharepoint.com/sites/CanteenReservation",
   "menu_ocr": {
-    "comment": "주간 식단표 이미지의 글자를 읽어 텍스트로 표시 (Tesseract + 한국어 필요). 못 읽으면 이미지로 표시",
+    "comment": "주간 식단표 이미지의 글자를 읽어 텍스트로 표시 (Windows 내장 OCR: pip install winocr, 또는 Tesseract). 못 읽으면 이미지로 표시",
     "enabled": true,
     "tesseract_cmd": "tesseract",
     "cutoff": 0.68
