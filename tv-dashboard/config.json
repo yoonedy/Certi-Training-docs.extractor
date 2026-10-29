@@ -20,7 +20,7 @@
                         "Scan to Mail", "You have been added", "^Welcome to", "놓쳤을 수 있는 뉴스"],
     "include_subject": []
   },
-  "menu_weekly_dir": "C:/Users/KRSEYOO5/OneDrive - ABB/현황판/식단표",
+  "menu_weekly_dir": "C:/Users/KRSEYOO5/OneDrive - ABB/Cafeteria Menu & Reservation (Cheonan) - CollabHome",
 
   "rotation_seconds": [60, 40, 40],
   "board_page_seconds": 15,

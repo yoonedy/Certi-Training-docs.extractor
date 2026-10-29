@@ -310,19 +310,42 @@ def get_notices(cfg, limit=8):
     return {"items": out, "stats": stats}
 
 
-def latest_image(folder):
+def latest_image(folder, accept=None, tries=15):
+    """하위 폴더까지 뒤져서 가장 최근 그림. accept(path)가 있으면 그걸 통과한 것 중 가장 최근 것
+    (SharePoint 페이지 그림 폴더처럼 주차별 폴더에 식단표와 다른 그림이 섞여 있을 때)"""
     if not folder.exists():
         return None
-    files = [f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT]
+    files = sorted((f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT),
+                   key=lambda p: p.stat().st_mtime, reverse=True)
     if not files:
         return None
-    f = max(files, key=lambda p: p.stat().st_mtime)
-    return {"name": f.name, "rel": f.relative_to(folder).as_posix(), "updated": dt.datetime.fromtimestamp(f.stat().st_mtime).isoformat(timespec="minutes")}
+    pick = files[0]
+    if accept:
+        pick = next((f for f in files[:tries] if accept(f)), files[0])
+    return {"name": pick.name, "rel": pick.relative_to(folder).as_posix(),
+            "updated": dt.datetime.fromtimestamp(pick.stat().st_mtime).isoformat(timespec="minutes")}
+
+
+_menu_shape = {}  # (경로, 수정 시각) → 식단표 모양인지 (한 번 본 그림은 다시 열지 않음)
+
+
+def looks_like_menu(path):
+    key = (str(path), path.stat().st_mtime)
+    if key not in _menu_shape:
+        try:
+            import menu_ocr
+            from PIL import Image
+            with Image.open(path) as im:
+                menu_ocr.find_grid(im.convert("RGB"))  # 초록 날짜 줄·노란 사이드 줄·요일 칸을 찾으면 식단표
+            _menu_shape[key] = True
+        except Exception:
+            _menu_shape[key] = False
+    return _menu_shape[key]
 
 
 def get_menu(cfg):
     folder = resolve(cfg["menu_weekly_dir"])
-    weekly = latest_image(folder)
+    weekly = latest_image(folder, accept=looks_like_menu)
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
     out = {"weekly": weekly, "dir": str(folder)}
