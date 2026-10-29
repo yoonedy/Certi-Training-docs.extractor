@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 CONFIG_PATH = ROOT / "config.json"
 EXCEL_EPOCH = dt.date(1899, 12, 30)
-IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".jfif", ".gif", ".webp", ".bmp"}
 
 # 엑셀 헤더 → JSON 키. 열 순서가 바뀌어도 헤더 이름으로 찾는다.
 COLUMNS = {
@@ -343,6 +343,22 @@ def looks_like_menu(path):
     return _menu_shape[key]
 
 
+def folder_summary(folder):
+    """폴더 안에 무엇이 있는지 (점검용): 하위 폴더 수, 파일 수, 확장자별 개수"""
+    import collections
+    dirs, kinds = 0, collections.Counter()
+    try:
+        for f in folder.rglob("*"):
+            if f.is_dir():
+                dirs += 1
+            else:
+                kinds[f.suffix.lower() or "(확장자 없음)"] += 1
+    except OSError as e:
+        return f"폴더를 읽지 못함: {e}"
+    top = ", ".join(f"{k} {n}개" for k, n in kinds.most_common(5))
+    return f"하위 폴더 {dirs}개 · 파일 {sum(kinds.values())}개" + (f" ({top})" if top else "")
+
+
 def get_menu(cfg):
     folder = resolve(cfg["menu_weekly_dir"])
     weekly = latest_image(folder, accept=looks_like_menu)
@@ -352,7 +368,7 @@ def get_menu(cfg):
     if not folder.is_dir():
         out["error"] = "식단표 폴더를 찾지 못함 (경로·OneDrive 동기화 확인)"
     elif not weekly:
-        out["error"] = "식단표 폴더에 이미지(png·jpg)가 아직 없음"
+        out["error"] = "식단표 폴더에 이미지(png·jpg)가 아직 없음 · " + folder_summary(folder)
     if weekly and cfg.get("menu_ocr", {}).get("enabled", True):
         out["text"] = menu_text(cfg, resolve(cfg["menu_weekly_dir"]) / weekly["rel"])
     return out
