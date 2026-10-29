@@ -353,6 +353,26 @@ def looks_like_menu(path):
     return _menu_shape[key]
 
 
+def menu_debug(cfg, n=25):
+    base, folders = menu_folders(cfg["menu_weekly_dir"])
+    files = sorted((f for r in folders if r.exists() for f in r.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT),
+                   key=lambda p: p.stat().st_mtime, reverse=True)[:n]
+    out = []
+    for f in files:
+        row = {"file": f.relative_to(base).as_posix(), "modified": dt.datetime.fromtimestamp(f.stat().st_mtime).isoformat(timespec="minutes")}
+        try:
+            import menu_ocr
+            from PIL import Image
+            with Image.open(f) as im:
+                row["size"] = im.size
+                menu_ocr.find_grid(im.convert("RGB"))
+            row["menu"] = True
+        except Exception as e:
+            row["menu"], row["why"] = False, str(e)
+        out.append(row)
+    return {"folders": [str(f) for f in folders], "newest_images": out}
+
+
 def folder_summary(folder):
     """폴더 안에 무엇이 있는지 (점검용): 하위 폴더 수, 파일 수, 확장자별 개수"""
     import collections
@@ -666,6 +686,8 @@ class Handler(SimpleHTTPRequestHandler):
         if p == "/api/notices":
             return self.send_json(get_notices(cfg))
         if p == "/api/menu":
+            if "debug" in url.query:  # /api/menu?debug=1 : 최근 그림들이 식단표로 인정됐는지 (점검용)
+                return self.send_json(menu_debug(cfg))
             return self.send_json(get_menu(cfg))
         if p == "/api/news":
             feed = urllib.parse.parse_qs(url.query).get("feed", [""])[0]

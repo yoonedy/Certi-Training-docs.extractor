@@ -41,20 +41,60 @@ def load_words():
 
 # ---------------------------------------------------------------- 표 칸 찾기
 
+def _is_green(c):  # 색조로 판단 — JPG로 저장돼 색이 조금 틀어져도 됨
+    r, g, b = c[:3]
+    return g >= 140 and g - r >= 35 and g - b >= 70
+
+
+def _is_yellow(c):  # 진한 노랑만 (아래쪽 연노랑 안내 상자는 제외)
+    r, g, b = c[:3]
+    return r >= 200 and g >= 130 and b <= 110 and r - g >= 15
+
+
+def _band(im, test, y_from=0, need=2, min_rows=1):
+    """여러 지점(가로 25·45·65·85%) 중 need곳 이상이 test를 만족하는 첫 가로 띠 → (y0, y1).
+    띠 안의 글자 때문에 몇 줄 끊겨도 한 띠로 보고, min_rows보다 얇은 띠(경계선 번짐)는 건너뜀"""
+    w, h = im.size
+    xs = [int(w * f) for f in (0.25, 0.45, 0.65, 0.85)]
+    rows = [y for y in range(y_from, h) if sum(test(im.getpixel((x, y))) for x in xs) >= need]
+    gap = max(3, h // 100)
+    i = 0
+    while i < len(rows):
+        y0 = y1 = rows[i]
+        i += 1
+        while i < len(rows) and rows[i] - y1 <= gap:
+            y1 = rows[i]
+            i += 1
+        if y1 - y0 + 1 >= min_rows:
+            return y0, y1
+    return None
+
+
+def _is_note(c):  # 아래쪽 연노랑 안내 상자 (원산지·알레르기)
+    r, g, b = c[:3]
+    return r >= 235 and g >= 225 and b <= 215 and r - b >= 30
+
+
+def bottom_of_table(im, y_from):
+    """석식 칸이 끝나는 y: 연노랑 안내 상자가 있으면 그 위, 없으면 그림 끝"""
+    band = _band(im, _is_note, y_from, need=3, min_rows=max(3, im.height // 120))
+    return (band[0] - 1) if band else im.height - 2
+
+
 def find_grid(im):
     """→ (머리줄 y0,y1), (사이드 y0,y1), [칸 경계 x...]  (첫 칸 = 중식/석식 이름 칸)"""
     w, h = im.size
-    xm = int(w * 0.33)
-    head = [y for y in range(h) if _near(im.getpixel((xm, y)), GREEN)]
+    head = _band(im, _is_green)
     if not head:
         raise ValueError("날짜 머리줄(초록)을 찾지 못함")
-    hy0, hy1 = head[0], head[-1]
-    side = [y for y in range(hy1, h) if _near(im.getpixel((xm, y)), YELLOW)]
+    hy0, hy1 = head
+    side = _band(im, _is_yellow, hy1 + 1)
     if not side:
         raise ValueError("사이드 줄(노랑)을 찾지 못함")
-    sy0, sy1 = side[0], side[-1]
-    y = hy0 + 2
-    gaps = [x for x in range(w) if min(im.getpixel((x, y))) > 150 and not _near(im.getpixel((x, y)), GREEN, 60)]
+    sy0, sy1 = side
+    # 요일 칸 경계: 머리줄 중 글자가 가장 적은 줄에서 초록이 끊기는 밝은 틈
+    y = max(range(hy0, hy1 + 1), key=lambda yy: sum(_is_green(im.getpixel((x, yy))) for x in range(0, w, 3)))
+    gaps = [x for x in range(w) if min(im.getpixel((x, y))[:3]) > 150 and not _is_green(im.getpixel((x, y)))]
     runs = []
     for x in gaps:
         if runs and x - runs[-1][-1] <= 1:
@@ -138,7 +178,7 @@ def _week_start(im, head, cuts, cmd, today):
             votes[mon] = votes.get(mon, 0) + 1
     if votes:
         return max(votes, key=votes.get)
-    return today - dt.timedelta(days=today.weekday())
+    return None  # 못 읽으면 '이번 주'로 추측하지 않음 (지난 식단표를 이번 주로 보여주지 않게)
 
 
 def read_menu(path, cmd="tesseract", cutoff=0.68, today=None):
@@ -149,17 +189,18 @@ def read_menu(path, cmd="tesseract", cutoff=0.68, today=None):
     head, side, cuts = find_grid(im)
     words = set(load_words())
     monday = _week_start(im, head, cuts, cmd, today)
+    bottom = bottom_of_table(im, side[1] + 1)
     days = []
     for k, (x0, x1) in enumerate(zip(cuts[1:6], cuts[2:7])):
-        date = monday + dt.timedelta(days=k)
+        date = monday + dt.timedelta(days=k) if monday else None
         days.append({
-            "date": date.isoformat(),
-            "label": f"{date.month}월 {date.day}일 ({WEEK[k]})",
+            "date": date.isoformat() if date else None,
+            "label": f"{date.month}월 {date.day}일 ({WEEK[k]})" if date else f"{WEEK[k]}요일",
             "lunch": _read_list(im, (x0 + 2, head[1] + 1, x1 - 1, side[0]), 6, cmd, words, cutoff),
             "side": _read_list(im, (x0 + 2, side[0], x1 - 1, side[1] + 1), 7, cmd, words, cutoff, split_slash=True),
-            "dinner": _read_list(im, (x0 + 2, side[1] + 1, x1 - 1, im.height - 2), 6, cmd, words, cutoff),
+            "dinner": _read_list(im, (x0 + 2, side[1] + 1, x1 - 1, bottom), 6, cmd, words, cutoff),
         })
-    return {"week_start": monday.isoformat(), "days": days}
+    return {"week_start": monday.isoformat() if monday else None, "days": days}
 
 
 if __name__ == "__main__":

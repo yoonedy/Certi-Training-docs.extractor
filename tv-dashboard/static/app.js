@@ -743,7 +743,11 @@
       const d = await getJSON("/api/menu");
       if (d.weekly && d.text && d.text.days) {
         renderMenuText(d.text);
-        $("menu-weekly-date").textContent = d.weekly.updated.replace("T", " ") + " 업로드 · 글자 자동 인식";
+        // 이번 주 식단표가 아니면(지난 식단표만 있거나 날짜를 못 읽음) 머리에 분명히 표시
+        const ws = d.text.week_start ? new Date(d.text.week_start + "T00:00:00") : null;
+        const now = new Date(), monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+        const note = !ws ? "⚠ 날짜를 읽지 못함 · " : ws.getTime() !== monday.getTime() ? `⚠ ${ws.getMonth() + 1}/${ws.getDate()} 주 식단 (이번 주 식단표 아님) · ` : "";
+        $("menu-weekly-date").textContent = note + d.weekly.updated.replace("T", " ") + " 업로드";
         return;
       }
       const put = (id, img, dateId, label) => {
