@@ -170,8 +170,25 @@ def get_schedule(cfg):
 
 # ---------------------------------------------------------------- 공지 / 식단표
 
-def get_notices(cfg, limit=8):
-    folder = resolve(cfg["notices_dir"])
+NOTICE_HEADERS = {  # 엑셀 머리글 → 키 (Power Automate '표에 행 추가'에서 쓴 이름)
+    "receiveddatetime": "received", "received": "received", "받은 시간": "received", "날짜": "received",
+    "subject": "subject", "제목": "subject",
+    "from": "from", "보낸 사람": "from", "sender": "from",
+    "torecipients": "to", "to": "to", "받는 사람": "to", "ccrecipients": "cc", "cc": "cc", "참조": "cc",
+    "body": "body", "bodypreview": "body", "본문": "body",
+}
+NOTICE_DEFAULT_COLS = ["received", "subject", "from", "to", "body"]  # 머리글이 없으면 A~E 순서로 봄
+
+
+def _when(s):
+    try:
+        d = dt.datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        return d if d.tzinfo else d.astimezone()
+    except ValueError:
+        return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+
+
+def _notices_from_folder(folder):
     items = []
     for f in folder.glob("*.json") if folder.exists() else []:
         try:
@@ -182,12 +199,79 @@ def get_notices(cfg, limit=8):
             items.append({
                 "subject": n.get("subject") or n.get("Subject") or f.stem,
                 "from": n.get("from") or n.get("From") or "",
+                "to": n.get("toRecipients") or n.get("to") or "",
+                "cc": n.get("ccRecipients") or n.get("cc") or "",
                 "received": n.get("received") or n.get("receivedDateTime") or
                             dt.datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
-                "body": strip_html(n.get("body") or n.get("bodyPreview") or n.get("Body") or "")[:400],
+                "body": n.get("body") or n.get("bodyPreview") or n.get("Body") or "",
             })
-    items.sort(key=lambda n: n["received"], reverse=True)
-    return {"items": items[:limit]}
+    return items
+
+
+def _notices_from_excel(src):
+    """Power Automate가 메일을 한 줄씩 쌓는 엑셀 (받은 시간 · 제목 · 보낸 사람 · [받는 사람] · [본문])"""
+    path = resolve(src["path"])
+    if not path.is_file():
+        return []
+    if path.suffix.lower() == ".xlsb":
+        rows = read_rows(path, src.get("sheet") or 1)
+    else:
+        from openpyxl import load_workbook
+        wb = load_workbook(str(path), read_only=True, data_only=True)
+        try:
+            ws = wb[src["sheet"]] if src.get("sheet") else wb.worksheets[0]
+            rows = [list(r) for r in ws.iter_rows(values_only=True)]
+        finally:
+            wb.close()
+    if not rows:
+        return []
+    head = [NOTICE_HEADERS.get(str(c).strip().lower()) if c is not None else None for c in rows[0]]
+    if "subject" in head:
+        cols, rows = head, rows[1:]
+    else:
+        cols = NOTICE_DEFAULT_COLS
+    items = []
+    for r in rows:
+        rec = {k: (str(r[i]).strip() if i < len(r) and r[i] is not None else "") for i, k in enumerate(cols) if k}
+        if rec.get("subject"):
+            items.append(rec)
+    return items
+
+
+def is_notice(n, rules):
+    """진짜 전체공지인지: (1) require_to가 있으면 받는 사람·참조에 그 주소가 있어야 함 (가장 정확)
+    (2) 자동 알림·회신·테스트 같은 보낸 사람/제목 패턴은 제외 (3) include_subject가 있으면 그중 하나는 맞아야 함"""
+    find = lambda pats, text: any(re.search(p, text or "", re.I) for p in pats)
+    need = rules.get("require_to") or []
+    if need and not find([re.escape(a) for a in need], f'{n.get("to", "")};{n.get("cc", "")}'):
+        return False
+    if find(rules.get("exclude_from", []), n.get("from", "")):
+        return False
+    if find(rules.get("exclude_subject", []), n.get("subject", "")):
+        return False
+    inc = rules.get("include_subject") or []
+    return not inc or find(inc, n.get("subject", ""))
+
+
+def get_notices(cfg, limit=8):
+    items = _notices_from_folder(resolve(cfg["notices_dir"]))
+    if (cfg.get("notices_excel") or {}).get("path"):
+        items += _notices_from_excel(cfg["notices_excel"])
+    rules = cfg.get("notices_filter", {})
+    items = [n for n in items if is_notice(n, rules)]
+    items.sort(key=lambda n: _when(n["received"]), reverse=True)
+    out, seen = [], set()
+    for n in items:  # 같은 공지를 두 번 보낸 경우(재발송) 최신 것만
+        key = re.sub(r"\s+", "", n["subject"]).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        sender = n.get("from", "")
+        out.append({"subject": n["subject"], "received": n["received"], "body": strip_html(n.get("body", ""))[:400],
+                    "from": sender.split("@")[0] if "@" in sender else sender})
+        if len(out) >= limit:
+            break
+    return {"items": out}
 
 
 def latest_image(folder):

@@ -42,7 +42,7 @@ def build_tv(server, live=False):
     c = {k: cfg.get(k) for k in keys}
     api = {
       "/api/config": c, "/api/schedule": sched, "/api/memo": {k: v for k, v in (cfg.get("memo") or {}).items() if k != "file"},
-      "/api/notices": {"items": [
+      "/api/notices": server.get_notices(cfg) if server.get_notices(cfg)["items"] else {"items": [
         {"subject": "[전체공지] 미리보기용 샘플 공지 %d" % i, "from": "샘플 부서", "received": "2026-10-%02dT%02d:30:00" % (27 - i, 9 + i),
          "body": "실제 화면에서는 Power Automate가 저장한 전체공지 메일 본문 앞부분이 여기에 표시됩니다."} for i in range(1, 6)]},
       "/api/menu": sample_menu(server, cfg),
