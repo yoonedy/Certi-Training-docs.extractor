@@ -426,13 +426,25 @@ def get_menu(cfg):
 
 
 # 주간 식단표 글자 읽기는 몇 초 걸리므로 새 이미지가 보이면 뒤에서 한 번만 돌리고 결과를 기억해 둠
+# 읽은 결과는 파일에도 남겨서 서버를 껐다 켜도 바로 요일별 카드로 보이게 함
 _ocr = {"key": None, "result": None, "running": False}
 _ocr_lock = threading.Lock()
+OCR_CACHE = ROOT / "data" / "menu" / "ocr_cache.json"
+
+
+def _load_ocr_cache():
+    try:
+        c = json.loads(OCR_CACHE.read_text(encoding="utf-8"))
+        return (c["path"], c["mtime"]), c["result"]
+    except Exception:
+        return None, None
 
 
 def menu_text(cfg, path):
     key = (str(path), path.stat().st_mtime)
     with _ocr_lock:
+        if _ocr["key"] is None:
+            _ocr["key"], _ocr["result"] = _load_ocr_cache()
         if _ocr["key"] == key:
             return _ocr["result"]
         if _ocr["running"]:
@@ -448,6 +460,12 @@ def menu_text(cfg, path):
             result = {"error": str(e)}
         with _ocr_lock:
             _ocr.update(key=key, result=result, running=False)
+        if "days" in result:  # 실패(프로그램 없음 등)는 남기지 않음 → 고친 뒤 다시 켜면 다시 읽음
+            try:
+                OCR_CACHE.parent.mkdir(parents=True, exist_ok=True)
+                OCR_CACHE.write_text(json.dumps({"path": key[0], "mtime": key[1], "result": result}, ensure_ascii=False), encoding="utf-8")
+            except OSError:
+                pass
 
     threading.Thread(target=work, daemon=True).start()
     return None

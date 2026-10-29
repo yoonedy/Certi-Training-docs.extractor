@@ -4,6 +4,7 @@ data/*.xlsx
 data/*.xlsm
 data/notices/*.json
 data/menu/weekly/*
+data/menu/ocr_cache.json
 !data/**/.gitkeep
 __pycache__/
 data/memo.txt

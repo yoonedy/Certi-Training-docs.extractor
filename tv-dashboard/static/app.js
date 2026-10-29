@@ -788,6 +788,8 @@
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");
+      // 서버가 아직 글자를 읽는 중이면(서버를 막 켰을 때 1~2분) 5분을 기다리지 않고 곧 다시 물어봄
+      if (d.weekly && d.text === null) setTimeout(loadMenu, 20000);
     } catch (e) {
       $("menu-weekly").innerHTML = emptyHTML("연결 오류", e.message);
     }
