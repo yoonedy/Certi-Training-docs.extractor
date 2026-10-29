@@ -13,7 +13,7 @@
   "notices_filter": {
     "comment": "진짜 전체공지만 보이게. 받는 사람+참조가 min_recipients명 이상이거나 require_to(전 직원 배포 목록) 주소로 온 메일만. 패턴은 대소문자 무시 정규식",
     "min_recipients": 15,
-    "require_to": [],
+    "require_to": ["KR-ALL-AU-AUEN@abb.com"],
     "exclude_from": ["no-?reply", "do-?not-?reply", "office365", "PowerPlatform", "abby@", "ims\\.service", "notification", "digest"],
     "exclude_subject": ["sent a message", "Daily Digest", "^Action required", "^Reminder", "research invitation", "IMS Notification",
                         "^(RE|FW|FWD|회신|전달)\\s*:", "\\btest\\b", "테스트",
