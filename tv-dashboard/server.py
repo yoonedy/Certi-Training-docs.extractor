@@ -177,7 +177,7 @@ NOTICE_HEADERS = {  # 엑셀 머리글 → 키 (Power Automate '표에 행 추�
     "torecipients": "to", "to": "to", "받는 사람": "to", "ccrecipients": "cc", "cc": "cc", "참조": "cc",
     "body": "body", "bodypreview": "body", "본문": "body",
 }
-NOTICE_DEFAULT_COLS = ["received", "subject", "from", "to", "body"]  # 머리글이 없으면 A~E 순서로 봄
+NOTICE_DEFAULT_COLS = ["received", "subject", "from", "to", "cc", "body"]  # 머리글이 없으면 A~F 순서로 봄
 
 
 def _when(s):
@@ -238,13 +238,26 @@ def _notices_from_excel(src):
     return items
 
 
+def recipients(n):
+    """받는 사람 + 참조 주소 목록 (Power Automate는 ';'로 이어 붙여 줌), 중복 제거"""
+    found = re.findall(r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+", f'{n.get("to", "")};{n.get("cc", "")}')
+    return sorted({a.lower() for a in found})
+
+
 def is_notice(n, rules):
-    """진짜 전체공지인지: (1) require_to가 있으면 받는 사람·참조에 그 주소가 있어야 함 (가장 정확)
+    """진짜 전체공지인지:
+    (1) 받는 사람 조건 — require_to 주소(전 직원 배포 목록)가 있거나, 받는 사람+참조가 min_recipients명 이상
+        (둘 다 설정하면 하나만 맞아도 통과. 받는 사람 정보가 아예 없는 메일엔 인원 조건을 적용하지 않음)
     (2) 자동 알림·회신·테스트 같은 보낸 사람/제목 패턴은 제외 (3) include_subject가 있으면 그중 하나는 맞아야 함"""
     find = lambda pats, text: any(re.search(p, text or "", re.I) for p in pats)
     need = rules.get("require_to") or []
-    if need and not find([re.escape(a) for a in need], f'{n.get("to", "")};{n.get("cc", "")}'):
-        return False
+    min_n = int(rules.get("min_recipients") or 0)
+    rcpt = recipients(n)
+    if need or (min_n and rcpt):
+        to_list = need and find([re.escape(a) for a in need], ";".join(rcpt))
+        many = min_n and len(rcpt) >= min_n
+        if not (to_list or many):
+            return False
     if find(rules.get("exclude_from", []), n.get("from", "")):
         return False
     if find(rules.get("exclude_subject", []), n.get("subject", "")):

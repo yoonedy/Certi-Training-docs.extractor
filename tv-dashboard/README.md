@@ -95,16 +95,20 @@ TV는 그 폴더를 `notices_refresh_hours`(기본 6시간)마다 읽는다. 최
 
 **이미 메일을 엑셀에 쌓고 있다면** (Power Automate '표에 행 추가'): `config.json`의 `notices_excel.path`에 그 엑셀(OneDrive 동기화 경로)을 적으면
 JSON 폴더 대신/함께 읽는다. 머리글(`receivedDateTime`·`subject`·`from`·`toRecipients`·`body` 또는 받은 시간·제목·보낸 사람·받는 사람·본문)로 열을 찾고,
-머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=본문으로 본다.
+머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=참조, F=본문으로 본다.
 
 ### 진짜 전체공지만 고르기 (`notices_filter`)
 
-1. **`require_to` — 가장 정확 (권장)**: 전 직원 배포 목록 주소(예: `KR-All-Employees@abb.com`)를 넣으면 **받는 사람·참조에 그 주소가 있는 메일만** 공지로 본다.
+1. **`min_recipients` — 받는 사람 + 참조가 15명 이상 (기본 15)**: 여러 명에게 한꺼번에 보낸 메일만 공지로 본다.
+   주소는 중복 없이 센다. 받는 사람 열이 없는 옛 행에는 적용하지 않는다.
+   ⚠️ 전 직원 **배포 목록 주소 하나**로 보낸 공지는 1명으로 세어지므로 그 주소를 `require_to`에 같이 넣어 둔다 (둘 중 하나만 맞으면 통과).
+   **숨은 참조(BCC)**로 보낸 공지는 받는 사람이 안 보여서 인원 조건으로는 못 고른다 → 이때는 보낸 사람·제목 규칙만 쓴다
+2. **`require_to` — 가장 정확**: 전 직원 배포 목록 주소(예: `KR-All-Employees@abb.com`)를 넣으면 **받는 사람·참조에 그 주소가 있는 메일만** 공지로 본다.
    테스트 메일, 개인에게 온 알림, 회신은 배포 목록으로 가지 않으므로 제목과 상관없이 빠진다.
    → 흐름/엑셀에 **받는 사람(`toRecipients`)·참조(`ccRecipients`)** 열을 추가해야 한다 (동적 콘텐츠 '받는 사람', '참조')
-2. **`exclude_from` / `exclude_subject` — 기본으로 켜져 있음**: no-reply·office365·Digest 같은 자동 발신자, "sent a message"·Reminder·Action required·RE:/FW:·test·테스트 제목은 뺀다
-3. **`include_subject`** (선택): 예를 들어 `["공지", "안내", "^\\["]`처럼 넣으면 그중 하나가 제목에 있어야 공지로 본다
-4. 같은 제목으로 두 번 보낸 공지는 최신 것 하나만
+3. **`exclude_from` / `exclude_subject` — 기본으로 켜져 있음**: no-reply·office365·Digest 같은 자동 발신자, "sent a message"·Reminder·Action required·RE:/FW:·test·테스트 제목은 뺀다
+4. **`include_subject`** (선택): 예를 들어 `["공지", "안내", "^\\["]`처럼 넣으면 그중 하나가 제목에 있어야 공지로 본다
+5. 같은 제목으로 두 번 보낸 공지는 최신 것 하나만
 
 규칙은 모두 대소문자 무시 정규식. 실제 메일 24건(Teams 알림·Digest·회신·테스트 섞임)으로 시험해 진짜 공지 9건만 남는 것을 확인함.
 공지 파일은 계속 쌓이므로 가끔 오래된 파일을 지우거나, 흐름에 '30일 지난 파일 삭제' 예약 흐름을 하나 더 두면 된다.

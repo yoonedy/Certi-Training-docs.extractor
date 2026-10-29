@@ -6,12 +6,13 @@
 
   "notices_dir": "data/notices",
   "notices_excel": {
-    "comment": "Power Automate가 메일을 한 줄씩 쌓는 엑셀(OneDrive 동기화 경로). 머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=본문",
+    "comment": "Power Automate가 메일을 한 줄씩 쌓는 엑셀(OneDrive 동기화 경로). 머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=참조, F=본문",
     "path": "",
     "sheet": ""
   },
   "notices_filter": {
-    "comment": "진짜 전체공지만 보이게. require_to에 전 직원 배포 목록 주소를 넣으면 그 주소로 온 메일만 (가장 정확). 패턴은 대소문자 무시 정규식",
+    "comment": "진짜 전체공지만 보이게. 받는 사람+참조가 min_recipients명 이상이거나 require_to(전 직원 배포 목록) 주소로 온 메일만. 패턴은 대소문자 무시 정규식",
+    "min_recipients": 15,
     "require_to": [],
     "exclude_from": ["no-?reply", "do-?not-?reply", "office365", "PowerPlatform", "abby@", "ims\\.service", "notification", "digest"],
     "exclude_subject": ["sent a message", "Daily Digest", "^Action required", "^Reminder", "research invitation", "IMS Notification",
