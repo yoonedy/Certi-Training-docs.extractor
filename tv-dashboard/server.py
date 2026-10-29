@@ -337,6 +337,26 @@ def latest_image(folder, accept=None, tries=15, roots=None):
 
 
 _menu_shape = {}  # (경로, 수정 시각) → 식단표 모양인지 (한 번 본 그림은 다시 열지 않음)
+_menu_crop = {}   # (경로, 수정 시각) → 표 부분 위치
+
+
+def table_crop(path):
+    """식단표 그림에서 제목·로고·아래 안내 상자를 뺀 '표' 부분 (그림 크기 대비 비율). 못 찾으면 None"""
+    key = (str(path), path.stat().st_mtime)
+    if key not in _menu_crop:
+        try:
+            import menu_ocr
+            from PIL import Image
+            with Image.open(path) as raw:
+                im = raw.convert("RGB")
+            (hy0, _), (_, sy1), cuts = menu_ocr.find_grid(im)
+            bottom = menu_ocr.bottom_of_table(im, sy1 + 1)
+            w, h = im.size
+            _menu_crop[key] = {"left": cuts[0] / w, "right": min(1, (cuts[6] + 1) / w),
+                               "top": max(0, (hy0 - 1) / h), "bottom": min(1, bottom / h)}
+        except Exception:
+            _menu_crop[key] = None
+    return _menu_crop[key]
 
 
 def looks_like_menu(path):
@@ -394,6 +414,7 @@ def get_menu(cfg):
     weekly = latest_image(base, accept=looks_like_menu, roots=folders)
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
+        weekly["crop"] = table_crop(base / weekly["rel"])
     out = {"weekly": weekly, "dir": "; ".join(str(f) for f in folders) or str(resolve(cfg["menu_weekly_dir"]))}
     if not any(f.is_dir() for f in folders):
         out["error"] = "식단표 폴더를 찾지 못함 (경로·OneDrive 동기화 확인)"

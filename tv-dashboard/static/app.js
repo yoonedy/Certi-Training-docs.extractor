@@ -730,12 +730,44 @@
   const imgSrc = (img) => (img.url.startsWith("data:") ? img.url : `${img.url}?v=${encodeURIComponent(img.updated)}`);
 
   // 글자 인식된 주간 식단 → 요일별 표 (오늘 열 강조)
+  // 글자로 읽은 주간 식단 → 요일별 카드 (오늘 카드는 하늘색). 매일 나오는 밥·김치는 흐리게, 주메뉴는 진하게
+  const MENU_SUB = /(^|[^가-힣])(백미밥|흑미밥|잡곡밥|현미밥|쌀밥)$|김치$|깍두기$|단무지$/;
   function renderMenuText(text) {
     const todayISO = ymd(new Date());
-    $("menu-weekly").innerHTML = `<table class="menu-week">
-      <thead><tr><th></th>${text.days.map((d) => `<th class="${d.date === todayISO ? "on" : ""}">${esc(d.label)}</th>`).join("")}</tr></thead>
-      <tbody>${[["lunch", "중식"], ["side", "사이드"], ["dinner", "석식"]].map(([k, name]) => `<tr class="${k}"><th>${name}</th>${text.days.map((d) =>
-        `<td class="${d.date === todayISO ? "on" : ""}">${(d[k] || []).map(esc).join("<br>")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    const item = (m) => `<li class="${MENU_SUB.test(m) ? "sub" : ""}">${esc(m)}</li>`;
+    $("menu-weekly").innerHTML = `<div class="menu-cards">${text.days.map((d, k) => {
+      const on = d.date === todayISO;
+      const dt0 = d.date ? new Date(d.date + "T00:00:00") : null;
+      const head = dt0 ? `<b>${dt0.getMonth() + 1}.${dt0.getDate()}</b><span>${WEEK[dt0.getDay()]}</span>` : `<b>${"월화수목금"[k]}</b><span>요일</span>`;
+      return `<div class="mc${on ? " on" : ""}">
+        <div class="mc-head">${head}${on ? "<i>오늘</i>" : ""}</div>
+        <div class="mc-sec"><span class="mc-tag lunch">중식</span><ul>${(d.lunch || []).map(item).join("")}</ul></div>
+        ${d.side && d.side.length ? `<div class="mc-side">${d.side.map(esc).join(" · ")}</div>` : ""}
+        <div class="mc-sec"><span class="mc-tag dinner">석식</span><ul>${(d.dinner || []).map(item).join("")}</ul></div>
+      </div>`;
+    }).join("")}</div>`;
+  }
+
+  // 그림으로 보여줄 때는 제목·로고·안내 상자를 잘라내고 표 부분만
+  function drawMenuImage(el, img) {
+    const c = img.crop;
+    if (!c) { el.innerHTML = `<img src="${imgSrc(img)}" alt="주간 식단">`; return; }
+    const im = new Image();
+    im.onload = () => {
+      const W = im.naturalWidth, H = im.naturalHeight;
+      const sx = c.left * W, sy = c.top * H, sw = (c.right - c.left) * W, sh = (c.bottom - c.top) * H;
+      const cv = document.createElement("canvas");
+      const scale = Math.max(1, 1400 / sw); // 작은 원본은 키워서 그림 (TV에서 덜 흐리게)
+      cv.width = Math.round(sw * scale); cv.height = Math.round(sh * scale);
+      const g = cv.getContext("2d");
+      g.imageSmoothingQuality = "high";
+      g.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      cv.className = "menu-crop";
+      el.innerHTML = "";
+      el.appendChild(cv);
+    };
+    im.onerror = () => { el.innerHTML = `<img src="${imgSrc(img)}" alt="주간 식단">`; };
+    im.src = imgSrc(img);
   }
 
   async function loadMenu() {
@@ -751,9 +783,8 @@
         return;
       }
       const put = (id, img, dateId, label) => {
-        $(id).innerHTML = img
-          ? `<img src="${imgSrc(img)}" alt="${label}">`
-          : emptyHTML("식단표", d.error ? `${d.error} — ${d.dir}` : `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
+        if (img) drawMenuImage($(id), img);
+        else $(id).innerHTML = emptyHTML("식단표", d.error ? `${d.error} — ${d.dir}` : `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");
