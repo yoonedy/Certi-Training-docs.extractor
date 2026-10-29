@@ -191,10 +191,25 @@ def _week_start(im, head, cuts, cmd, today):
     return None  # 못 읽으면 '이번 주'로 추측하지 않음 (지난 식단표를 이번 주로 보여주지 않게)
 
 
+def find_tesseract(cmd="tesseract"):
+    """설정값 → PATH → Windows 기본 설치 위치 순서로 tesseract 실행 파일을 찾음 (설치만 하면 설정을 안 고쳐도 되게)"""
+    if Path(cmd).is_file():
+        return cmd
+    if shutil.which(cmd):
+        return shutil.which(cmd)
+    env = os.environ
+    for base in (env.get("ProgramFiles"), env.get("ProgramFiles(x86)"), env.get("LOCALAPPDATA"),
+                 env.get("LOCALAPPDATA") and os.path.join(env["LOCALAPPDATA"], "Programs")):
+        if base:
+            exe = Path(base) / "Tesseract-OCR" / "tesseract.exe"
+            if exe.is_file():
+                return str(exe)
+    raise FileNotFoundError(f"Tesseract 실행 파일 없음: {cmd} (설치했다면 config.json의 tesseract_cmd에 tesseract.exe 경로를 넣어 주세요)")
+
+
 def read_menu(path, cmd="tesseract", cutoff=0.68, today=None):
     today = today or dt.date.today()
-    if not shutil.which(cmd) and not Path(cmd).is_file():
-        raise FileNotFoundError(f"Tesseract 실행 파일 없음: {cmd}")
+    cmd = find_tesseract(cmd)
     im = Image.open(path).convert("RGB")
     head, side, cuts = find_grid(im)
     words = set(load_words())
