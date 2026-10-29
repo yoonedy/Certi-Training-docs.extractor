@@ -551,11 +551,12 @@
   }
 
   // 사내 공지: 최근 전체공지 메일을 모아서 8초마다 하나씩 크게 보여줌
-  let notices = [], noticeIdx = 0;
+  let notices = [], noticeIdx = 0, noticeError = "";
   async function loadNotices() {
     try {
       const d = await getJSON("/api/notices");
       notices = d.items || [];
+      noticeError = (d.stats && d.stats.error) || "";
       noticeIdx = Math.min(noticeIdx, Math.max(0, notices.length - 1));
       renderNotice();
     } catch (e) {
@@ -566,7 +567,7 @@
   function renderNotice() {
     const el = $("notice-body");
     $("notice-count").textContent = notices.length ? `최근 ${notices.length}건` : "";
-    if (!notices.length) { el.innerHTML = emptyHTML("전체공지", "새 전체공지 메일이 오면 여기에 모여서 표시돼요"); return; }
+    if (!notices.length) { el.innerHTML = emptyHTML("전체공지", noticeError || "새 전체공지 메일이 오면 여기에 모여서 표시돼요"); return; }
     const n = notices[noticeIdx];
     el.innerHTML = `<div class="notice-main"><div class="subj">${esc(n.subject)}</div>
       <div class="meta">${esc(n.from)} · ${fmtWhen(n.received)}</div>
@@ -748,7 +749,7 @@
       const put = (id, img, dateId, label) => {
         $(id).innerHTML = img
           ? `<img src="${imgSrc(img)}" alt="${label}">`
-          : emptyHTML("SharePoint", `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
+          : emptyHTML("식단표", d.error ? `${d.error} — ${d.dir}` : `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
         $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");

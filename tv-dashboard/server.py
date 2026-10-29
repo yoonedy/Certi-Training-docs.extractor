@@ -258,13 +258,14 @@ def recipients(n):
 def is_notice(n, rules):
     """진짜 전체공지인지:
     (1) 받는 사람 조건 — require_to 주소(전 직원 배포 목록)가 있거나, 받는 사람+참조가 min_recipients명 이상
-        (둘 다 설정하면 하나만 맞아도 통과. 받는 사람 정보가 아예 없는 메일엔 인원 조건을 적용하지 않음)
+        (둘 다 설정하면 하나만 맞아도 통과. 받는사람·참조 열을 만들기 전에 쌓인 메일처럼
+        받는 사람 정보가 아예 없으면 이 조건은 건너뜀)
     (2) 자동 알림·회신·테스트 같은 보낸 사람/제목 패턴은 제외 (3) include_subject가 있으면 그중 하나는 맞아야 함"""
     find = lambda pats, text: any(re.search(p, text or "", re.I) for p in pats)
     need = rules.get("require_to") or []
     min_n = int(rules.get("min_recipients") or 0)
     rcpt = recipients(n)
-    if need or (min_n and rcpt):
+    if rcpt and (need or min_n):
         to_list = need and find([re.escape(a) for a in need], ";".join(rcpt))
         many = min_n and len(rcpt) >= min_n
         if not (to_list or many):
@@ -279,10 +280,21 @@ def is_notice(n, rules):
 
 def get_notices(cfg, limit=8):
     items = _notices_from_folder(resolve(cfg["notices_dir"]))
-    if (cfg.get("notices_excel") or {}).get("path"):
-        items += _notices_from_excel(cfg["notices_excel"])
+    stats = {}  # 브라우저에서 /api/notices 를 열면 몇 건 읽고 몇 건 걸렀는지 보임 (점검용)
+    src = (cfg.get("notices_excel") or {}).get("path")
+    if src:
+        stats["excel"] = str(resolve(src))
+        if not resolve(src).is_file():
+            stats["error"] = "사내소식 엑셀을 찾지 못함 (경로·OneDrive 동기화 확인)"
+        else:
+            try:
+                items += _notices_from_excel(cfg["notices_excel"])
+            except Exception as e:  # 엑셀을 저장하는 순간 등
+                stats["error"] = f"사내소식 엑셀을 읽지 못함: {e}"
     rules = cfg.get("notices_filter", {})
+    stats["read"] = len(items)
     items = [n for n in items if is_notice(n, rules)]
+    stats["notices"] = len(items)
     items.sort(key=lambda n: _when(n["received"]), reverse=True)
     out, seen = [], set()
     for n in items:  # 같은 공지를 두 번 보낸 경우(재발송) 최신 것만
@@ -295,7 +307,7 @@ def get_notices(cfg, limit=8):
                     "from": sender.split("@")[0] if "@" in sender else sender})
         if len(out) >= limit:
             break
-    return {"items": out}
+    return {"items": out, "stats": stats}
 
 
 def latest_image(folder):
@@ -309,10 +321,15 @@ def latest_image(folder):
 
 
 def get_menu(cfg):
-    weekly = latest_image(resolve(cfg["menu_weekly_dir"]))
+    folder = resolve(cfg["menu_weekly_dir"])
+    weekly = latest_image(folder)
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
-    out = {"weekly": weekly}
+    out = {"weekly": weekly, "dir": str(folder)}
+    if not folder.is_dir():
+        out["error"] = "식단표 폴더를 찾지 못함 (경로·OneDrive 동기화 확인)"
+    elif not weekly:
+        out["error"] = "식단표 폴더에 이미지(png·jpg)가 아직 없음"
     if weekly and cfg.get("menu_ocr", {}).get("enabled", True):
         out["text"] = menu_text(cfg, resolve(cfg["menu_weekly_dir"]) / weekly["rel"])
     return out
