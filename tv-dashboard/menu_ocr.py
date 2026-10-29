@@ -102,9 +102,19 @@ def find_grid(im):
         else:
             runs.append([x])
     cuts = [r[len(r) // 2] for r in runs]
+    # 그림 가장자리에 여백이 없으면 바깥 경계가 그림 끝과 겹쳐 안 보임 → 빠진 쪽 끝을 채움
+    if len(cuts) == 6:
+        if cuts[0] > w * 0.02:
+            cuts = [0] + cuts
+        elif cuts[-1] < w * 0.98:
+            cuts = cuts + [w - 1]
     if len(cuts) < 7:
         raise ValueError(f"요일 칸 경계를 {len(cuts)}개만 찾음")
-    return (hy0, hy1), (sy0, sy1), cuts[:7]
+    cuts = cuts[:7]
+    widths = [b - a for a, b in zip(cuts[1:6], cuts[2:7])]  # 다섯 요일 칸은 너비가 비슷해야 식단표
+    if min(widths) < max(widths) * 0.7:
+        raise ValueError(f"요일 칸 너비가 고르지 않음 {widths}")
+    return (hy0, hy1), (sy0, sy1), cuts
 
 
 # ---------------------------------------------------------------- 글자 읽기
