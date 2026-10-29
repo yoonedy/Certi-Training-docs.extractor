@@ -1,13 +1,13 @@
 {
   "port": 8080,
 
-  "excel_path": "data/Schedule_Template.xlsb",
+  "excel_path": "C:/Users/KRSEYOO5/OneDrive - ABB/현황판/Schedule*.xls*",
   "excel_sheet": "입력양식",
 
   "notices_dir": "data/notices",
   "notices_excel": {
     "comment": "Power Automate가 메일을 한 줄씩 쌓는 엑셀(OneDrive 동기화 경로). 머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=참조, F=본문",
-    "path": "",
+    "path": "C:/Users/KRSEYOO5/OneDrive - ABB/현황판/사내소식.xlsx",
     "sheet": ""
   },
   "notices_filter": {
@@ -20,7 +20,7 @@
                         "Scan to Mail", "You have been added", "^Welcome to", "놓쳤을 수 있는 뉴스"],
     "include_subject": []
   },
-  "menu_weekly_dir": "data/menu/weekly",
+  "menu_weekly_dir": "C:/Users/KRSEYOO5/OneDrive - ABB/현황판/식단표",
 
   "rotation_seconds": [60, 40, 40],
   "board_page_seconds": 15,

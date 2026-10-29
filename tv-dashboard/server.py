@@ -145,8 +145,17 @@ _schedule_cache = {"mtime": None, "data": None}
 _schedule_lock = threading.Lock()
 
 
+def newest_match(path_str):
+    """'…/현황판/Schedule*.xls*'처럼 *가 있으면 맞는 파일 중 가장 최근에 저장된 것 (파일 이름의 날짜가 바뀌어도 그대로 동작)"""
+    p = resolve(path_str)
+    if "*" not in p.name:
+        return p
+    hits = [f for f in p.parent.glob(p.name) if f.is_file() and not f.name.startswith("~$")]  # ~$… = 엑셀 임시 파일
+    return max(hits, key=lambda f: f.stat().st_mtime) if hits else p
+
+
 def get_schedule(cfg):
-    path = resolve(cfg["excel_path"])
+    path = newest_match(cfg["excel_path"])
     if not path.exists():
         return {"error": f"엑셀 파일 없음: {path}", "projects": []}
     mtime = path.stat().st_mtime
