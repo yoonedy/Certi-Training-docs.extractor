@@ -18,6 +18,8 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #0d1016; }
+/* 터치 TV: 밀기는 페이지 넘김에만 쓰고 브라우저 뒤로 가기·확대·글자 선택은 막음 */
+html, body { touch-action: none; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased; }
 
 /* 1920x1080 고정 무대를 화면 크기에 맞춰 축소/확대 */

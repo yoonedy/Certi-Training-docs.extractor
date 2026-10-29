@@ -78,10 +78,38 @@
     pageTimer = setTimeout(() => showPage(pageIdx + 1), secs * 1000);
   }
 
+  // 손으로 넘기기 (터치 TV에서 밀기 · 키보드 ←/→). 현황판은 장(1/2/3)부터 넘기고 끝 장에서 다음 페이지로
+  function flip(dir) {
+    const onBoard = $("page-board").classList.contains("active");
+    const next = boardPage + dir;
+    if (onBoard && board && next >= 0 && next < boardPages()) {
+      boardPage = next;
+      renderBoardPage();
+      startBoardTimer();
+      if (!params.has("page")) { // 남은 장 수만큼 현황판에 더 머묾
+        clearTimeout(pageTimer);
+        const secs = CFG.board_page_seconds || 15;
+        pageTimer = setTimeout(() => showPage(pageIdx + 1), (boardPages() - boardPage) * secs * 1000);
+      }
+      return;
+    }
+    showPage(pageIdx + dir);
+  }
+
   addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") showPage(pageIdx + 1);
-    if (e.key === "ArrowLeft") showPage(pageIdx - 1);
+    if (e.key === "ArrowRight") flip(1);
+    if (e.key === "ArrowLeft") flip(-1);
   });
+
+  let swipe = null;
+  addEventListener("pointerdown", (e) => { swipe = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+  addEventListener("pointerup", (e) => {
+    if (!swipe) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y, quick = Date.now() - swipe.t < 1200;
+    swipe = null;
+    if (quick && Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5) flip(dx < 0 ? 1 : -1); // 왼쪽으로 밀면 다음
+  });
+  addEventListener("pointercancel", () => { swipe = null; });
 
   // ───────────────────────── 1. 지도
 
@@ -497,6 +525,12 @@
     if (params.has("board")) return;
     boardPage = 0;
     renderBoardPage();
+    startBoardTimer();
+  }
+
+  function startBoardTimer() {
+    clearInterval(boardTimer);
+    if (params.has("board")) return;
     boardTimer = setInterval(() => {
       if (!$("page-board").classList.contains("active")) return clearInterval(boardTimer);
       boardPage = (boardPage + 1) % boardPages();
