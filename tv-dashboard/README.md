@@ -94,7 +94,8 @@ TV는 그 폴더를 `notices_refresh_hours`(기본 6시간)마다 읽는다. 최
 서버는 `subject`(제목), `from`(보낸 사람), `receivedDateTime`(받은 시각), `body`(본문, HTML은 글자만 남김)를 읽고 최근 8건을 보여준다.
 
 **이미 메일을 엑셀에 쌓고 있다면** (Power Automate '표에 행 추가'): `config.json`의 `notices_excel.path`에 그 엑셀(OneDrive 동기화 경로)을 적으면
-JSON 폴더 대신/함께 읽는다. 머리글(`receivedDateTime`·`subject`·`from`·`toRecipients`·`body` 또는 받은 시간·제목·보낸 사람·받는 사람·본문)로 열을 찾고,
+JSON 폴더 대신/함께 읽는다. 머리글(`receivedDateTime`·`subject`·`from`·`toRecipients`·`ccRecipients`·`body` 또는 받은날짜·제목·보낸사람·받는사람·참조·본문, 띄어쓰기 무시)로 열을 찾고,
+날짜가 아닌 줄(흐름을 처음 만들 때 생긴 빈 줄, 'Received Time' 같은 시험 줄)은 건너뛰며,
 머리글이 없으면 A=받은 시간, B=제목, C=보낸 사람, D=받는 사람, E=참조, F=본문으로 본다.
 
 ### 진짜 전체공지만 고르기 (`notices_filter`)

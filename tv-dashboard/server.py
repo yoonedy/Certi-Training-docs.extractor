@@ -170,11 +170,12 @@ def get_schedule(cfg):
 
 # ---------------------------------------------------------------- 공지 / 식단표
 
-NOTICE_HEADERS = {  # 엑셀 머리글 → 키 (Power Automate '표에 행 추가'에서 쓴 이름)
-    "receiveddatetime": "received", "received": "received", "받은 시간": "received", "날짜": "received",
+NOTICE_HEADERS = {  # 엑셀 머리글(띄어쓰기·대소문자 무시) → 키 (Power Automate '표에 행 추가'에서 쓴 이름)
+    "receiveddatetime": "received", "received": "received", "receivedtime": "received", "받은시간": "received",
+    "받은날짜": "received", "날짜": "received",
     "subject": "subject", "제목": "subject",
-    "from": "from", "보낸 사람": "from", "sender": "from",
-    "torecipients": "to", "to": "to", "받는 사람": "to", "ccrecipients": "cc", "cc": "cc", "참조": "cc",
+    "from": "from", "sender": "from", "보낸사람": "from",
+    "torecipients": "to", "to": "to", "받는사람": "to", "ccrecipients": "cc", "cc": "cc", "참조": "cc",
     "body": "body", "bodypreview": "body", "본문": "body",
 }
 NOTICE_DEFAULT_COLS = ["received", "subject", "from", "to", "cc", "body"]  # 머리글이 없으면 A~F 순서로 봄
@@ -225,7 +226,7 @@ def _notices_from_excel(src):
             wb.close()
     if not rows:
         return []
-    head = [NOTICE_HEADERS.get(str(c).strip().lower()) if c is not None else None for c in rows[0]]
+    head = [NOTICE_HEADERS.get(re.sub(r"\s+", "", str(c)).lower()) if c is not None else None for c in rows[0]]
     if "subject" in head:
         cols, rows = head, rows[1:]
     else:
@@ -233,7 +234,8 @@ def _notices_from_excel(src):
     items = []
     for r in rows:
         rec = {k: (str(r[i]).strip() if i < len(r) and r[i] is not None else "") for i, k in enumerate(cols) if k}
-        if rec.get("subject"):
+        # 흐름을 처음 만들 때 생긴 빈 줄·'Received Time' 같은 시험 줄은 날짜가 아니라서 건너뜀
+        if rec.get("subject") and _when(rec.get("received")).year > 1:
             items.append(rec)
     return items
 

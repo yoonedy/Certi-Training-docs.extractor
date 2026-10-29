@@ -16,7 +16,8 @@
     "require_to": [],
     "exclude_from": ["no-?reply", "do-?not-?reply", "office365", "PowerPlatform", "abby@", "ims\\.service", "notification", "digest"],
     "exclude_subject": ["sent a message", "Daily Digest", "^Action required", "^Reminder", "research invitation", "IMS Notification",
-                        "^(RE|FW|FWD|회신|전달)\\s*:", "\\btest\\b", "테스트"],
+                        "^(RE|FW|FWD|회신|전달)\\s*:", "\\btest\\b", "테스트",
+                        "Scan to Mail", "You have been added", "^Welcome to", "놓쳤을 수 있는 뉴스"],
     "include_subject": []
   },
   "menu_weekly_dir": "data/menu/weekly",
