@@ -310,12 +310,22 @@ def get_notices(cfg, limit=8):
     return {"items": out, "stats": stats}
 
 
-def latest_image(folder, accept=None, tries=15):
-    """하위 폴더까지 뒤져서 가장 최근 그림. accept(path)가 있으면 그걸 통과한 것 중 가장 최근 것
+def menu_folders(path_str):
+    """→ (기준 폴더, 찾아볼 폴더들). 이름에 *가 있으면 맞는 폴더를 모두 찾아봄
+    (예: 'OneDrive - ABB/Cafeteria Menu & Reservation (Cheonan) - *' → SharePoint 바로 가기 이름이 바뀌어도 동작)"""
+    p = resolve(path_str)
+    if "*" not in p.name:
+        return p, [p]
+    return p.parent, sorted(d for d in p.parent.glob(p.name) if d.is_dir())
+
+
+def latest_image(folder, accept=None, tries=15, roots=None):
+    """하위 폴더까지 뒤져서 가장 최근 그림 (rel은 folder 기준). accept(path)가 있으면 그걸 통과한 것 중 가장 최근 것
     (SharePoint 페이지 그림 폴더처럼 주차별 폴더에 식단표와 다른 그림이 섞여 있을 때)"""
-    if not folder.exists():
+    roots = [r for r in (roots or [folder]) if r.exists()]
+    if not roots:
         return None
-    files = sorted((f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT),
+    files = sorted((f for r in roots for f in r.rglob("*") if f.is_file() and f.suffix.lower() in IMAGE_EXT),
                    key=lambda p: p.stat().st_mtime, reverse=True)
     if not files:
         return None
@@ -360,17 +370,17 @@ def folder_summary(folder):
 
 
 def get_menu(cfg):
-    folder = resolve(cfg["menu_weekly_dir"])
-    weekly = latest_image(folder, accept=looks_like_menu)
+    base, folders = menu_folders(cfg["menu_weekly_dir"])
+    weekly = latest_image(base, accept=looks_like_menu, roots=folders)
     if weekly:
         weekly["url"] = "/files/menu-weekly/" + urllib.parse.quote(weekly["rel"])
-    out = {"weekly": weekly, "dir": str(folder)}
-    if not folder.is_dir():
+    out = {"weekly": weekly, "dir": "; ".join(str(f) for f in folders) or str(resolve(cfg["menu_weekly_dir"]))}
+    if not any(f.is_dir() for f in folders):
         out["error"] = "식단표 폴더를 찾지 못함 (경로·OneDrive 동기화 확인)"
     elif not weekly:
-        out["error"] = "식단표 폴더에 이미지(png·jpg)가 아직 없음 · " + folder_summary(folder)
+        out["error"] = "식단표 폴더에 이미지(png·jpg)가 아직 없음 · " + " / ".join(f"{f.name}: {folder_summary(f)}" for f in folders)
     if weekly and cfg.get("menu_ocr", {}).get("enabled", True):
-        out["text"] = menu_text(cfg, resolve(cfg["menu_weekly_dir"]) / weekly["rel"])
+        out["text"] = menu_text(cfg, base / weekly["rel"])
     return out
 
 
@@ -668,7 +678,7 @@ class Handler(SimpleHTTPRequestHandler):
         if p == "/api/stocks":
             return self.send_json(cached("stocks", 300, lambda: fetch_stocks(cfg.get("stocks", []))))
         if p.startswith("/files/menu-weekly/"):
-            folder = resolve(cfg["menu_weekly_dir"])
+            folder = menu_folders(cfg["menu_weekly_dir"])[0]
             rel = urllib.parse.unquote(p.split("/", 3)[3])
             target = (folder / rel).resolve()
             if folder.resolve() not in target.parents:  # 경로 이탈 방지
