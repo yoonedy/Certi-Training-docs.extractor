@@ -67,7 +67,7 @@ TV는 그 폴더를 `notices_refresh_hours`(기본 6시간)마다 읽는다. 최
 ```
 전체공지 메일 ──(배포 목록에 현황판 메일 추가 / 전달 규칙)──▶ 현황판 전용 메일함
    ──(Power Automate: 새 메일 → 파일 만들기)──▶ SharePoint TV/notices/*.json
-   ──(OneDrive 동기화)──▶ TV 서버 PC 폴더 ──(6시간마다)──▶ TV 3페이지 '사내 공지'
+   ──(OneDrive 동기화)──▶ TV 서버 PC 폴더 ──(1시간마다)──▶ TV 3페이지 '사내 공지'
 ```
 
 **1. 전용 메일함에 공지가 들어오게 하기** (IT 또는 메일 관리자)
@@ -89,7 +89,7 @@ TV는 그 폴더를 `notices_refresh_hours`(기본 6시간)마다 읽는다. 최
 **3. TV 서버 PC**
 - SharePoint `TV/notices` 폴더를 열고 **동기화** (OneDrive) → `config.json`의 `notices_dir`에 동기화된 경로
   (예: `C:/Users/계정/ABB/TV - Documents/notices`)
-- 새 공지가 TV에 나오기까지 최대 `notices_refresh_hours`(6시간). 바로 보고 싶으면 브라우저 새로고침(F5)
+- 새 공지가 TV에 나오기까지 최대 `notices_refresh_hours`(1시간). 바로 보고 싶으면 브라우저 새로고침(F5)
 
 서버는 `subject`(제목), `from`(보낸 사람), `receivedDateTime`(받은 시각), `body`(본문, HTML은 글자만 남김)를 읽고 최근 8건을 보여준다.
 
