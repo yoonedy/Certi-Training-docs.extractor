@@ -24,7 +24,7 @@
 
   "rotation_seconds": [60, 40, 40],
   "board_scroll": true,
-  "board_scroll_speed": 35,
+  "touch_hold_seconds": 60,
   "board_page_seconds": 15,
   "refresh_minutes": 5,
   "notices_refresh_hours": 6,

@@ -74,7 +74,7 @@
     if (params.has("page")) return;
     clearTimeout(pageTimer);
     let secs = (CFG.rotation_seconds || [])[PAGES.indexOf(page)] || 40;
-    if (page.id === "page-board") secs = Math.max(secs, boardScroll() ? boardScrollSeconds() : boardPages() * (CFG.board_page_seconds || 15)); // 현황판은 끝까지 다 보여줌
+    if (page.id === "page-board" && !boardScroll()) secs = Math.max(secs, boardPages() * (CFG.board_page_seconds || 15)); // 장 넘기기면 모든 장을 다 보여줌
     pageTimer = setTimeout(() => showPage(pageIdx + 1), secs * 1000);
   }
 
@@ -101,8 +101,16 @@
     if (e.key === "ArrowLeft") flip(-1);
   });
 
+  // 누가 화면을 만지고 있으면(스크롤·터치) touch_hold_seconds 동안 다음 페이지로 넘어가지 않음
+  function holdPage() {
+    if (params.has("page")) return;
+    clearTimeout(pageTimer);
+    pageTimer = setTimeout(() => showPage(pageIdx + 1), (CFG.touch_hold_seconds || 60) * 1000);
+  }
+  addEventListener("wheel", holdPage, { passive: true });
+
   let swipe = null;
-  addEventListener("pointerdown", (e) => { swipe = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+  addEventListener("pointerdown", (e) => { swipe = { x: e.clientX, y: e.clientY, t: Date.now() }; holdPage(); });
   addEventListener("pointerup", (e) => {
     if (!swipe) return;
     const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y, quick = Date.now() - swipe.t < 1200;
@@ -454,7 +462,7 @@
   const ym = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
   const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const boardPages = () => (board ? Math.max(1, Math.ceil(board.rows.length / BOARD_ROWS_PER_PAGE)) : 1);
-  // 기본은 위아래로 천천히 흐르기 (config board_scroll: false 면 5건씩 장 넘기기)
+  // 기본은 전체 목록을 손가락으로 위아래 스크롤 (config board_scroll: false 면 5건씩 장 넘기기)
   const boardScroll = () => CFG.board_scroll !== false && !params.has("board");
 
   function renderBoard(data) {
@@ -524,7 +532,7 @@
   // 현황판이 화면에 나오면 1장부터 board_page_seconds마다 넘김
   function startBoardPaging() {
     clearInterval(boardTimer);
-    if (boardScroll()) return startBoardScroll();
+    if (boardScroll()) { $("board-view").scrollTop = 0; return; } // 들어올 때마다 맨 위부터
     if (params.has("board")) return;
     boardPage = 0;
     renderBoardPage();
@@ -541,38 +549,9 @@
     }, (CFG.board_page_seconds || 15) * 1000);
   }
 
-  // 위에서 SCROLL_HOLD초 멈춤 → board_scroll_speed(px/초)로 끝까지 내려감 → 끝에서 멈춤 → 처음으로 (현황판이 보이는 동안 반복)
-  const SCROLL_HOLD = 4;
-  let scrollRun = 0;
-  const boardScrollDist = () => Math.max(0, $("board-rows").scrollHeight - $("board-view").clientHeight);
-  const boardScrollSeconds = () => {
-    const d = boardScrollDist();
-    return d ? SCROLL_HOLD * 2 + d / (CFG.board_scroll_speed || 35) : 0;
-  };
-
-  function startBoardScroll() {
-    const run = ++scrollRun, el = $("board-rows");
-    const speed = CFG.board_scroll_speed || 35;
-    let y = 0, phase = "top", wait = SCROLL_HOLD, last = performance.now();
-    el.style.transform = "translateY(0)";
-    const step = (now) => {
-      if (run !== scrollRun || !$("page-board").classList.contains("active")) return;
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      const dist = boardScrollDist(); // 자료가 새로 고쳐져 줄 수가 바뀌어도 맞춤
-      if (phase === "move") {
-        y = Math.min(dist, y + speed * dt);
-        if (y >= dist) { phase = "bottom"; wait = SCROLL_HOLD; }
-      } else if ((wait -= dt) <= 0) {
-        if (phase === "top" && dist > 0) phase = "move";
-        else if (phase === "bottom") { y = 0; phase = "top"; wait = SCROLL_HOLD; }
-        else wait = SCROLL_HOLD;
-      }
-      el.style.transform = `translateY(${-y.toFixed(1)}px)`;
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
+  $("board-view").addEventListener("scroll", () => {
+    if ($("page-board").classList.contains("active")) holdPage();
+  }, { passive: true });
 
   // ───────────────────────── 3. 사내소식 · 식단
 
