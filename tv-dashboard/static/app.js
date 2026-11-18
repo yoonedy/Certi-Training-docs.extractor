@@ -74,7 +74,7 @@
     if (params.has("page")) return;
     clearTimeout(pageTimer);
     let secs = (CFG.rotation_seconds || [])[PAGES.indexOf(page)] || 40;
-    if (page.id === "page-board") secs = Math.max(secs, boardPages() * (CFG.board_page_seconds || 15)); // 현황판은 모든 장을 다 보여줌
+    if (page.id === "page-board") secs = Math.max(secs, boardScroll() ? boardScrollSeconds() : boardPages() * (CFG.board_page_seconds || 15)); // 현황판은 끝까지 다 보여줌
     pageTimer = setTimeout(() => showPage(pageIdx + 1), secs * 1000);
   }
 
@@ -82,7 +82,7 @@
   function flip(dir) {
     const onBoard = $("page-board").classList.contains("active");
     const next = boardPage + dir;
-    if (onBoard && board && next >= 0 && next < boardPages()) {
+    if (onBoard && board && !boardScroll() && next >= 0 && next < boardPages()) {
       boardPage = next;
       renderBoardPage();
       startBoardTimer();
@@ -454,6 +454,8 @@
   const ym = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
   const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const boardPages = () => (board ? Math.max(1, Math.ceil(board.rows.length / BOARD_ROWS_PER_PAGE)) : 1);
+  // 기본은 위아래로 천천히 흐르기 (config board_scroll: false 면 5건씩 장 넘기기)
+  const boardScroll = () => CFG.board_scroll !== false && !params.has("board");
 
   function renderBoard(data) {
     const t = today();
@@ -502,7 +504,7 @@
 
   function renderBoardPage() {
     if (!board) return;
-    const rows = board.rows.slice(boardPage * BOARD_ROWS_PER_PAGE, (boardPage + 1) * BOARD_ROWS_PER_PAGE);
+    const rows = boardScroll() ? board.rows : board.rows.slice(boardPage * BOARD_ROWS_PER_PAGE, (boardPage + 1) * BOARD_ROWS_PER_PAGE);
     const todayLeft = (board.today / 12) * 100;
     $("board-rows").innerHTML = rows.map((r) => {
       const next = r.st.next ? `${ScheduleLogic.fmtDate(r.st.next.date, today())} ${r.st.next.label}` : r.st.annual ? "연간 계약" : "";
@@ -515,13 +517,14 @@
         <div class="r-end"><div class="end-card"><span>종료일</span><b>${ym(r.st.end)}</b></div></div>
       </div>`;
     }).join("") || `<div class="b-empty">${emptyHTML("현황판", "진행 중이거나 예정된 프로젝트가 없어요")}</div>`;
-    const n = boardPages();
+    const n = boardScroll() ? 1 : boardPages();
     $("board-pager").innerHTML = n > 1 ? Array.from({ length: n }, (_, k) => `<i class="${k === boardPage ? "on" : ""}">${k + 1}</i>`).join("") : "";
   }
 
   // 현황판이 화면에 나오면 1장부터 board_page_seconds마다 넘김
   function startBoardPaging() {
     clearInterval(boardTimer);
+    if (boardScroll()) return startBoardScroll();
     if (params.has("board")) return;
     boardPage = 0;
     renderBoardPage();
@@ -536,6 +539,39 @@
       boardPage = (boardPage + 1) % boardPages();
       renderBoardPage();
     }, (CFG.board_page_seconds || 15) * 1000);
+  }
+
+  // 위에서 SCROLL_HOLD초 멈춤 → board_scroll_speed(px/초)로 끝까지 내려감 → 끝에서 멈춤 → 처음으로 (현황판이 보이는 동안 반복)
+  const SCROLL_HOLD = 4;
+  let scrollRun = 0;
+  const boardScrollDist = () => Math.max(0, $("board-rows").scrollHeight - $("board-view").clientHeight);
+  const boardScrollSeconds = () => {
+    const d = boardScrollDist();
+    return d ? SCROLL_HOLD * 2 + d / (CFG.board_scroll_speed || 35) : 0;
+  };
+
+  function startBoardScroll() {
+    const run = ++scrollRun, el = $("board-rows");
+    const speed = CFG.board_scroll_speed || 35;
+    let y = 0, phase = "top", wait = SCROLL_HOLD, last = performance.now();
+    el.style.transform = "translateY(0)";
+    const step = (now) => {
+      if (run !== scrollRun || !$("page-board").classList.contains("active")) return;
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const dist = boardScrollDist(); // 자료가 새로 고쳐져 줄 수가 바뀌어도 맞춤
+      if (phase === "move") {
+        y = Math.min(dist, y + speed * dt);
+        if (y >= dist) { phase = "bottom"; wait = SCROLL_HOLD; }
+      } else if ((wait -= dt) <= 0) {
+        if (phase === "top" && dist > 0) phase = "move";
+        else if (phase === "bottom") { y = 0; phase = "top"; wait = SCROLL_HOLD; }
+        else wait = SCROLL_HOLD;
+      }
+      el.style.transform = `translateY(${-y.toFixed(1)}px)`;
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   // ───────────────────────── 3. 사내소식 · 식단
