@@ -764,6 +764,38 @@
   }
 
   // 그림으로 보여줄 때는 제목·로고·안내 상자를 잘라내고 표 부분만
+  // 식단표 사진에서 오늘이 몇 번째 요일 칸인지 (월=0 … 금=4). 이번 주 식단표가 아니거나 주말이면 -1
+  function menuDayIndex(c, img) {
+    const now = today(), wd = (now.getDay() + 6) % 7;
+    if (!c.cols || wd > 4) return -1;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - wd);
+    if (c.week_start) return new Date(c.week_start + "T00:00:00").getTime() === monday.getTime() ? wd : -1;
+    // 날짜를 못 읽었으면: 이번 주 직전 주말 이후에 올라온 사진만 이번 주 식단표로 봄
+    return new Date(img.updated) >= new Date(monday.getTime() - 3 * 86400000) ? wd : -1;
+  }
+
+  // 지난 요일은 흐리게, 오늘 칸은 하늘색 테두리 + '오늘' 표시
+  function markMenuDays(g, c, W, H, k, pad) {
+    if (k < 0) return;
+    const X = (f) => (f - c.left) * W, top = pad, bottom = (c.bottom - c.top) * H;
+    const u = W / 1400; // 선·글자 굵기 기준
+    g.fillStyle = "rgba(255,255,255,.55)";
+    for (let d = 0; d < k; d++) g.fillRect(X(c.cols[d + 1]), top, X(c.cols[d + 2]) - X(c.cols[d + 1]), bottom);
+    const x0 = X(c.cols[k + 1]), x1 = X(c.cols[k + 2]), lw = 5 * u;
+    g.fillStyle = "rgba(47,138,216,.10)";
+    g.fillRect(x0, top, x1 - x0, bottom);
+    g.strokeStyle = "#2f8ad8"; g.lineWidth = lw;
+    g.beginPath(); g.roundRect(x0 + lw / 2, top + lw / 2, x1 - x0 - lw, bottom - lw, 8 * u); g.stroke();
+    // '오늘' 표시는 표 위 여백, 오늘 칸 가운데
+    const fs = 28 * u, pw = fs * 3.2, ph = pad - 12 * u;
+    const px = (x0 + x1 - pw) / 2, py = 2 * u;
+    g.fillStyle = "#2f8ad8";
+    g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
+    g.fillStyle = "#fff"; g.font = `800 ${fs}px Pretendard, "Malgun Gothic", sans-serif`;
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText("오늘", px + pw / 2, py + ph / 2 + fs * 0.05);
+  }
+
   function drawMenuImage(el, img) {
     const c = img.crop;
     if (!c) { el.innerHTML = `<img src="${imgSrc(img)}" alt="주간 식단">`; return; }
@@ -773,10 +805,12 @@
       const sx = c.left * W, sy = c.top * H, sw = (c.right - c.left) * W, sh = (c.bottom - c.top) * H;
       const cv = document.createElement("canvas");
       const scale = Math.max(1, 1400 / sw); // 작은 원본은 키워서 그림 (TV에서 덜 흐리게)
-      cv.width = Math.round(sw * scale); cv.height = Math.round(sh * scale);
+      const k = menuDayIndex(c, img), pad = k >= 0 ? Math.round(sw * scale / 1400 * 56) : 0; // 위 여백 = '오늘' 표시 자리
+      cv.width = Math.round(sw * scale); cv.height = Math.round(sh * scale) + pad;
       const g = cv.getContext("2d");
       g.imageSmoothingQuality = "high";
-      g.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      g.drawImage(im, sx, sy, sw, sh, 0, pad, cv.width, cv.height - pad);
+      markMenuDays(g, c, W * scale, H * scale, k, pad);
       cv.className = "menu-crop";
       el.innerHTML = "";
       el.appendChild(cv);
@@ -800,7 +834,10 @@
       const put = (id, img, dateId, label) => {
         if (img) drawMenuImage($(id), img);
         else $(id).innerHTML = emptyHTML("식단표", d.error ? `${d.error} — ${d.dir}` : `식단 게시판(CanteenReservation)에 ${label} 이미지가 올라오면 표시돼요`);
-        $(dateId).textContent = img ? img.updated.replace("T", " ") + " 업로드" : "";
+        const c = img && img.crop, ws = c && c.week_start ? new Date(c.week_start + "T00:00:00") : null;
+        const t = today(), monday = new Date(t.getFullYear(), t.getMonth(), t.getDate() - ((t.getDay() + 6) % 7));
+        const note = ws && ws.getTime() !== monday.getTime() ? `⚠ ${ws.getMonth() + 1}/${ws.getDate()} 주 식단 (이번 주 식단표 아님) · ` : "";
+        $(dateId).textContent = img ? note + img.updated.replace("T", " ") + " 업로드" : "";
       };
       put("menu-weekly", d.weekly, "menu-weekly-date", "주간 식단");
       // 서버가 아직 글자를 읽는 중이면(서버를 막 켰을 때 1~2분) 5분을 기다리지 않고 곧 다시 물어봄

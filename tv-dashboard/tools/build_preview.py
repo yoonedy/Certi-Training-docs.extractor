@@ -23,7 +23,7 @@ def sample_menu(server, cfg):
             f = server.resolve(cfg[folder]) / img["rel"]
             mime = "image/png" if f.suffix.lower() == ".png" else "image/jpeg"
             img["url"] = f"data:{mime};base64," + base64.b64encode(f.read_bytes()).decode()
-    if menu.get("weekly") and not menu.get("text"):  # 서버는 뒤에서 읽지만 미리보기는 여기서 바로 읽음
+    if menu.get("weekly") and not menu.get("text") and cfg.get("menu_ocr", {}).get("enabled", True):  # 서버는 뒤에서 읽지만 미리보기는 여기서 바로 읽음
         try:
             import menu_ocr
             opts = cfg.get("menu_ocr", {})

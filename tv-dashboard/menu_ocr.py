@@ -229,6 +229,14 @@ def find_tesseract(cmd="tesseract"):
                             "(또는 Tesseract 설치)")
 
 
+def week_of(im, head, cuts, cmd="tesseract", today=None):
+    """머리줄 날짜만 읽어 그 주 월요일 (메뉴 전체를 읽는 것보다 훨씬 빠름). 글자 읽기 프로그램이 없거나 못 읽으면 None"""
+    try:
+        return _week_start(im, head, cuts, find_tesseract(cmd), today or dt.date.today())
+    except Exception:
+        return None
+
+
 def read_menu(path, cmd="tesseract", cutoff=0.68, today=None):
     today = today or dt.date.today()
     cmd = find_tesseract(cmd)

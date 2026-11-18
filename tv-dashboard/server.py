@@ -349,11 +349,14 @@ def table_crop(path):
             from PIL import Image
             with Image.open(path) as raw:
                 im = raw.convert("RGB")
-            (hy0, _), (_, sy1), cuts = menu_ocr.find_grid(im)
+            (hy0, hy1), (_, sy1), cuts = menu_ocr.find_grid(im)
             bottom = menu_ocr.bottom_of_table(im, sy1 + 1)
             w, h = im.size
+            week = menu_ocr.week_of(im, (hy0, hy1), cuts)  # 오늘 칸 표시용 (날짜 5칸만 읽음, 몇 초)
             _menu_crop[key] = {"left": cuts[0] / w, "right": min(1, (cuts[6] + 1) / w),
-                               "top": max(0, (hy0 - 1) / h), "bottom": min(1, bottom / h)}
+                               "top": max(0, (hy0 - 1) / h), "bottom": min(1, bottom / h),
+                               "cols": [x / w for x in cuts[:7]], "head_bottom": hy1 / h,
+                               "week_start": week.isoformat() if week else None}
         except Exception:
             _menu_crop[key] = None
     return _menu_crop[key]
